@@ -16,7 +16,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
+            background: rgb(40, 40, 40);
             height: 100vh;
             overflow: hidden;
             display: flex;
@@ -230,6 +230,15 @@
 
         body.light-theme .folder-selected-subtitle {
             color: #9aa0a6;
+        }
+
+        /* 라이트 테마에서 사용법 설명 텍스트 색상 */
+        body.light-theme .upload-area div[style*="color: #888"] {
+            color: #9aa0a6 !important;
+        }
+
+        body.light-theme .upload-area strong[style*="color: #ccc"] {
+            color: #5f6368 !important;
         }
 
         /* 상단 툴바 */
@@ -760,40 +769,41 @@
             margin: 0 6px;
         }
 
-        /* 업로드 영역 */
+        /* 업로드 영역 - 기본 다크모드 */
         .upload-area {
             flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: white;
-            border: 2px dashed #dadce0;
+            background: rgb(50, 50, 50);
+            border: 2px dashed #555;
             margin: 20px;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
+            color: #ccc;
         }
 
         .upload-area:hover {
             border-color: #4285f4;
-            background: #f8f9fa;
+            background: rgb(45, 45, 45);
         }
 
         .upload-area.dragover {
             border-color: #4285f4;
-            background: #e8f0fe;
+            background: rgba(66, 133, 244, 0.1);
         }
 
         .upload-icon {
             font-size: 3em;
-            color: #9aa0a6;
+            color: #888;
             margin-bottom: 16px;
         }
 
         .upload-text {
             font-size: 16px;
-            color: #5f6368;
+            color: #ccc;
             margin-bottom: 16px;
         }
 
@@ -816,18 +826,19 @@
             display: none;
         }
 
-        /* 폴더 선택 완료 메시지 */
+        /* 폴더 선택 완료 메시지 - 기본 다크모드 */
         .folder-selected-message {
             flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: white;
-            border: 2px solid #e8f0fe;
+            background: rgb(50, 50, 50);
+            border: 2px solid #444;
             margin: 20px;
             border-radius: 8px;
             padding: 40px;
+            color: #ccc;
         }
 
         .folder-selected-icon {
@@ -838,14 +849,14 @@
 
         .folder-selected-text {
             font-size: 18px;
-            color: #5f6368;
+            color: #ccc;
             margin-bottom: 16px;
             text-align: center;
         }
 
         .folder-selected-subtitle {
             font-size: 14px;
-            color: #9aa0a6;
+            color: #888;
             text-align: center;
             line-height: 1.6;
         }
@@ -1362,8 +1373,8 @@
                 <div class="upload-icon">📁</div>
                 <div class="upload-text">폴더를 선택하세요</div>
                 <button class="upload-btn">폴더 선택</button>
-                <div style="margin-top: 20px; text-align: center; color: #9aa0a6; font-size: 14px; line-height: 1.6;">
-                    <strong style="color: #5f6368;">사용법:</strong><br>
+                <div style="margin-top: 20px; text-align: center; color: #888; font-size: 14px; line-height: 1.6;">
+                    <strong style="color: #ccc;">사용법:</strong><br>
                     <strong style="color: #4285f4;">• 폴더 선택:</strong> <strong>폴더 선택 버튼</strong>으로 폴더 선택 (모든 폴더 구조 표시, PDF 파일만 열기 가능)<br>
                     <strong style="color: #4285f4;">• 폴더 탐색기:</strong> <strong>📁 아이콘</strong>으로 선택된 폴더의 모든 폴더와 PDF 파일들 관리<br>
                     <strong style="color: #4285f4;">• 페이지 썸네일:</strong> <strong>🖼️ 아이콘</strong>으로 페이지 썸네일 보기 및 빠른 이동<br>
@@ -4014,8 +4025,36 @@
 
         // 앱 초기화
         document.addEventListener('DOMContentLoaded', () => {
+            // 페이지 로드 시 즉시 시스템 테마 적용
+            applyInitialSystemTheme();
+            
+            // PDF 뷰어 초기화
             new PDFClipboard();
         });
+
+        // 초기 시스템 테마 적용 (페이지 로드 시)
+        function applyInitialSystemTheme() {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                // 시스템이 다크모드면 기본 상태 유지 (다크모드)
+                document.body.classList.remove('light-theme');
+            } else {
+                // 시스템이 라이트모드면 라이트 테마 적용
+                document.body.classList.add('light-theme');
+            }
+            
+            // 시스템 테마 변경 감지
+            if (window.matchMedia) {
+                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                mediaQuery.addEventListener('change', (e) => {
+                    // PDF 뷰어가 로드되지 않은 상태에서도 테마 변경 적용
+                    if (e.matches) {
+                        document.body.classList.remove('light-theme');
+                    } else {
+                        document.body.classList.add('light-theme');
+                    }
+                });
+            }
+        }
     </script>
 </body>
 </html>
