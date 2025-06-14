@@ -1353,13 +1353,13 @@
             }
 
             .zoom-select {
-                min-width: 55px;
+                min-width: 65px; /* 모바일에서 더 넓게 */
                 font-size: 12px;
                 padding: 4px 8px;
             }
 
             .toolbar-input {
-                min-width: 30px;
+                min-width: 40px; /* 모바일에서 더 넓게 */
                 font-size: 12px;
                 padding: 4px 8px;
             }
@@ -1576,6 +1576,14 @@
                 this.isSelecting = false;
                 this.selectionStart = { x: 0, y: 0 };
                 this.selectionEnd = { x: 0, y: 0 };
+                
+                // 터치/스와이프 관련
+                this.touchStartX = 0;
+                this.touchStartY = 0;
+                this.touchStartTime = 0;
+                this.isTouch = false;
+                this.swipeThreshold = 50; // 스와이프 최소 거리
+                this.swipeTimeThreshold = 300; // 스와이프 최대 시간 (ms)
                 
                 // 사이드바 관련
                 this.isIconPanelOpen = false;
@@ -1988,11 +1996,20 @@
                     this.handleResize();
                 });
                 
-                // 캡쳐 오버레이 이벤트
+                // 캡쳐 오버레이 이벤트 (마우스 + 터치)
                 this.captureOverlay.addEventListener('mousedown', (e) => this.startSelection(e));
                 this.captureOverlay.addEventListener('mousemove', (e) => this.updateSelection(e));
                 this.captureOverlay.addEventListener('mouseup', (e) => this.endSelection(e));
                 this.captureOverlay.addEventListener('mouseleave', (e) => this.cancelSelection(e));
+                
+                // 터치 이벤트 추가
+                this.captureOverlay.addEventListener('touchstart', (e) => this.startSelection(e));
+                this.captureOverlay.addEventListener('touchmove', (e) => this.updateSelection(e));
+                this.captureOverlay.addEventListener('touchend', (e) => this.endSelection(e));
+                
+                // PDF 컨테이너 터치/스와이프 이벤트
+                this.pdfContainer.addEventListener('touchstart', (e) => this.handleTouchStart(e));
+                this.pdfContainer.addEventListener('touchend', (e) => this.handleTouchEnd(e));
             }
 
             // 초기 테마 설정
@@ -3672,11 +3689,25 @@
                     const tempRenderTask = page.render(renderContext);
                     await tempRenderTask.promise;
                     
-                    // Canvas를 클립보드에 복사
+                    // Canvas를 클립보드에 복사 (모바일에서는 다운로드로 대체)
                     tempCanvas.toBlob(async (blob) => {
-                        const item = new ClipboardItem({'image/png': blob});
-                        await navigator.clipboard.write([item]);
-                        this.showToastMessage('✅ 이미지가 클립보드에 복사되었습니다!');
+                        try {
+                            // 클립보드 API 지원 체크
+                            if (navigator.clipboard && navigator.clipboard.write && !this.isMobile) {
+                                const item = new ClipboardItem({'image/png': blob});
+                                await navigator.clipboard.write([item]);
+                                this.showToastMessage('✅ 이미지가 클립보드에 복사되었습니다!');
+                            } else {
+                                // 모바일이거나 클립보드 API 미지원 시 다운로드
+                                this.downloadBlobAsImage(blob, `page_${this.currentPage}.png`);
+                                this.showToastMessage('📱 모바일에서는 이미지가 다운로드됩니다!');
+                            }
+                        } catch (error) {
+                            // 클립보드 실패 시 다운로드로 대체
+                            console.log('클립보드 복사 실패, 다운로드로 대체:', error);
+                            this.downloadBlobAsImage(blob, `page_${this.currentPage}.png`);
+                            this.showToastMessage('📥 클립보드 대신 이미지를 다운로드했습니다!');
+                        }
                     }, 'image/png', 1.0);
                     
                     return true;
@@ -3685,6 +3716,24 @@
                     this.showToastMessage('❌ 이미지 복사에 실패했습니다.');
                     return false;
                 }
+            }
+            
+            // Blob을 이미지 파일로 다운로드
+            downloadBlobAsImage(blob, filename) {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.style.display = 'none';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // 메모리 정리
+                setTimeout(() => {
+                    URL.revokeObjectURL(url);
+                }, 1000);
             }
 
             // 스마트 복사 - 텍스트 선택되어 있으면 텍스트, 아니면 이미지
@@ -3754,7 +3803,14 @@
                     // 텍스트 선택 비활성화
                     this.textLayer.style.pointerEvents = 'none';
                     
-                    this.showToastMessage('✂️ 캡쳐 모드 활성화! 드래그하여 영역을 선택하세요');
+                    // 모바일에서 캡쳐 가이드 메시지 변경
+                    if (this.isMobile) {
+                        this.captureGuide.textContent = '터치하여 캡쳐할 영역을 선택하세요 (ESC: 종료)';
+                        this.showToastMessage('✂️ 캡쳐 모드 활성화! 터치로 영역을 선택하면 이미지가 다운로드됩니다');
+                    } else {
+                        this.captureGuide.textContent = '드래그하여 캡쳐할 영역을 선택하세요 (ESC: 종료)';
+                        this.showToastMessage('✂️ 캡쳐 모드 활성화! 드래그하여 영역을 선택하세요');
+                    }
                 } else {
                     // 캡쳐 모드 비활성화
                     this.exitCaptureMode();
@@ -3776,16 +3832,87 @@
                 this.textLayer.style.pointerEvents = 'auto';
             }
             
+            // 터치 시작 처리 (스와이프 감지용)
+            handleTouchStart(e) {
+                if (this.isCaptureMode) return; // 캡쳐 모드에서는 스와이프 비활성화
+                
+                const touch = e.touches[0];
+                this.touchStartX = touch.clientX;
+                this.touchStartY = touch.clientY;
+                this.touchStartTime = Date.now();
+                this.isTouch = true;
+            }
+            
+            // 터치 종료 처리 (스와이프 감지)
+            async handleTouchEnd(e) {
+                if (!this.isTouch || this.isCaptureMode) return;
+                
+                const touch = e.changedTouches[0];
+                const touchEndX = touch.clientX;
+                const touchEndY = touch.clientY;
+                const touchEndTime = Date.now();
+                
+                const deltaX = touchEndX - this.touchStartX;
+                const deltaY = touchEndY - this.touchStartY;
+                const deltaTime = touchEndTime - this.touchStartTime;
+                
+                this.isTouch = false;
+                
+                // 스와이프 시간이 너무 길면 무시
+                if (deltaTime > this.swipeTimeThreshold) return;
+                
+                const absDeltaX = Math.abs(deltaX);
+                const absDeltaY = Math.abs(deltaY);
+                
+                // 좌우 스와이프 (페이지 이동)
+                if (absDeltaX > this.swipeThreshold && absDeltaX > absDeltaY) {
+                    if (deltaX > 0) {
+                        // 우측 스와이프 - 이전 페이지
+                        await this.previousPage();
+                    } else {
+                        // 좌측 스와이프 - 다음 페이지  
+                        await this.nextPage();
+                    }
+                }
+                // 상하 스와이프는 스크롤로 처리 (기본 동작)
+            }
+            
+            // 좌표 추출 함수 (마우스/터치 통합)
+            getEventCoordinates(e) {
+                if (e.touches && e.touches.length > 0) {
+                    // 터치 이벤트
+                    return {
+                        clientX: e.touches[0].clientX,
+                        clientY: e.touches[0].clientY
+                    };
+                } else if (e.changedTouches && e.changedTouches.length > 0) {
+                    // 터치 종료 이벤트
+                    return {
+                        clientX: e.changedTouches[0].clientX,
+                        clientY: e.changedTouches[0].clientY
+                    };
+                } else {
+                    // 마우스 이벤트
+                    return {
+                        clientX: e.clientX,
+                        clientY: e.clientY
+                    };
+                }
+            }
+            
             startSelection(e) {
                 if (!this.isCaptureMode) return;
                 
                 e.preventDefault();
                 this.isSelecting = true;
                 
+                // 터치/마우스 좌표 통합 처리
+                const coords = this.getEventCoordinates(e);
+                
                 // 캡쳐 오버레이를 기준으로 정확한 좌표 계산
                 const overlayRect = this.captureOverlay.getBoundingClientRect();
-                this.selectionStart.x = e.clientX - overlayRect.left;
-                this.selectionStart.y = e.clientY - overlayRect.top;
+                this.selectionStart.x = coords.clientX - overlayRect.left;
+                this.selectionStart.y = coords.clientY - overlayRect.top;
                 this.selectionEnd.x = this.selectionStart.x;
                 this.selectionEnd.y = this.selectionStart.y;
                 
@@ -3798,24 +3925,16 @@
                 if (!this.isCaptureMode || !this.isSelecting) return;
                 
                 e.preventDefault();
+                
+                // 터치/마우스 좌표 통합 처리
+                const coords = this.getEventCoordinates(e);
+                
                 // 캡쳐 오버레이를 기준으로 정확한 좌표 계산
                 const overlayRect = this.captureOverlay.getBoundingClientRect();
-                this.selectionEnd.x = e.clientX - overlayRect.left;
-                this.selectionEnd.y = e.clientY - overlayRect.top;
+                this.selectionEnd.x = coords.clientX - overlayRect.left;
+                this.selectionEnd.y = coords.clientY - overlayRect.top;
                 
                 this.updateSelectionArea();
-            }
-            
-            updateSelectionArea() {
-                const left = Math.min(this.selectionStart.x, this.selectionEnd.x);
-                const top = Math.min(this.selectionStart.y, this.selectionEnd.y);
-                const width = Math.abs(this.selectionEnd.x - this.selectionStart.x);
-                const height = Math.abs(this.selectionEnd.y - this.selectionStart.y);
-                
-                this.selectionArea.style.left = left + 'px';
-                this.selectionArea.style.top = top + 'px';
-                this.selectionArea.style.width = width + 'px';
-                this.selectionArea.style.height = height + 'px';
             }
             
             async endSelection(e) {
@@ -3846,6 +3965,18 @@
                 this.isSelecting = false;
                 this.selectionArea.style.display = 'none';
                 this.captureGuide.classList.add('show');
+            }
+            
+            updateSelectionArea() {
+                const left = Math.min(this.selectionStart.x, this.selectionEnd.x);
+                const top = Math.min(this.selectionStart.y, this.selectionEnd.y);
+                const width = Math.abs(this.selectionEnd.x - this.selectionStart.x);
+                const height = Math.abs(this.selectionEnd.y - this.selectionStart.y);
+                
+                this.selectionArea.style.left = left + 'px';
+                this.selectionArea.style.top = top + 'px';
+                this.selectionArea.style.width = width + 'px';
+                this.selectionArea.style.height = height + 'px';
             }
             
             async captureSelectedArea() {
@@ -3928,11 +4059,25 @@
                         0, 0, canvasCropWidth, canvasCropHeight
                     );
                     
-                    // 클립보드에 복사
+                    // 클립보드 복사 시도 (모바일에서는 다운로드로 대체)
                     finalCanvas.toBlob(async (blob) => {
-                        const item = new ClipboardItem({'image/png': blob});
-                        await navigator.clipboard.write([item]);
-                        this.showToastMessage('✂️ 선택 영역이 클립보드에 복사되었습니다!');
+                        try {
+                            // 클립보드 API 지원 체크
+                            if (navigator.clipboard && navigator.clipboard.write && !this.isMobile) {
+                                const item = new ClipboardItem({'image/png': blob});
+                                await navigator.clipboard.write([item]);
+                                this.showToastMessage('✂️ 선택 영역이 클립보드에 복사되었습니다!');
+                            } else {
+                                // 모바일이거나 클립보드 API 미지원 시 다운로드
+                                this.downloadBlobAsImage(blob, 'captured_area.png');
+                                this.showToastMessage('📱 모바일에서는 이미지가 다운로드됩니다!');
+                            }
+                        } catch (error) {
+                            // 클립보드 실패 시 다운로드로 대체
+                            console.log('클립보드 복사 실패, 다운로드로 대체:', error);
+                            this.downloadBlobAsImage(blob, 'captured_area.png');
+                            this.showToastMessage('📥 클립보드 대신 이미지를 다운로드했습니다!');
+                        }
                     }, 'image/png', 1.0);
                     
                 } catch (error) {
@@ -3940,7 +4085,7 @@
                     this.showToastMessage('❌ 영역 캡쳐에 실패했습니다');
                 }
             }
-            
+
             async generateThumbnails() {
                 if (!this.pdf) return;
                 
