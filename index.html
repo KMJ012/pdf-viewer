@@ -11,6 +11,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
         }
 
         body {
@@ -20,6 +21,215 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            transition: background-color 0.4s ease;
+        }
+
+        /* 라이트 모드 */
+        body.light-theme {
+            background: #f8f9fa;
+        }
+
+        body.light-theme .toolbar {
+            background: rgb(248, 249, 250);
+            border-bottom: 1px solid #e1e5e9;
+            color: #202124;
+        }
+
+        body.light-theme .file-title {
+            color: #202124;
+        }
+
+        body.light-theme .toolbar-btn {
+            color: #5f6368;
+        }
+
+        body.light-theme .toolbar-btn:hover {
+            background: rgba(60, 64, 67, 0.08);
+            color: #202124;
+        }
+
+        body.light-theme .toolbar-input {
+            background: white;
+            border: 1px solid #dadce0;
+            color: #202124;
+        }
+
+        body.light-theme .toolbar-input:hover {
+            background: #f8f9fa;
+            border-color: #dadce0;
+        }
+
+        body.light-theme .toolbar-input:focus {
+            background: white;
+            border-color: #4285f4;
+        }
+
+        body.light-theme .zoom-select {
+            background: white;
+            border: 1px solid #dadce0;
+            color: #202124;
+        }
+
+        body.light-theme .zoom-select:hover {
+            background: #f8f9fa;
+        }
+
+        body.light-theme .zoom-select:focus {
+            background: white;
+            border-color: #4285f4;
+        }
+
+        body.light-theme .page-divider {
+            color: #5f6368;
+        }
+
+        body.light-theme .sidebar {
+            background: rgb(248, 249, 250);
+            border-right: 1px solid #e1e5e9;
+        }
+
+        body.light-theme .icon-panel {
+            background: rgb(241, 243, 244);
+            border-right: 1px solid #e1e5e9;
+        }
+
+        body.light-theme .icon-btn {
+            color: #5f6368;
+        }
+
+        body.light-theme .icon-btn:hover {
+            background: rgba(60, 64, 67, 0.08);
+            color: #202124;
+        }
+
+        body.light-theme .icon-btn.active {
+            background: #4285f4;
+            color: #fff;
+        }
+
+        body.light-theme .folder-section {
+            background: rgb(248, 249, 250);
+        }
+
+        body.light-theme .folder-header {
+            border-bottom: 1px solid #e1e5e9;
+        }
+
+        body.light-theme .folder-title {
+            color: #202124;
+        }
+
+        body.light-theme .folder-tree {
+            color: #5f6368;
+        }
+
+        body.light-theme .folder-item:hover {
+            background: rgba(60, 64, 67, 0.08);
+        }
+
+        body.light-theme .folder-item.selected {
+            background: #4285f4;
+            color: white;
+        }
+
+        body.light-theme .folder-item.pdf-file {
+            color: #202124;
+        }
+
+        body.light-theme .folder-empty {
+            color: #5f6368;
+            background: rgba(60, 64, 67, 0.04);
+        }
+
+        body.light-theme .folder-empty:hover {
+            background: rgba(66, 133, 244, 0.08);
+            color: #202124;
+        }
+
+        body.light-theme .thumbnail-item {
+            background: white;
+            border: 2px solid #e1e5e9;
+        }
+
+        body.light-theme .thumbnail-item:hover {
+            border-color: #4285f4;
+        }
+
+        body.light-theme .loading-thumbnails {
+            color: #5f6368;
+        }
+
+        body.light-theme .pdf-container {
+            background: rgb(245, 245, 245);
+        }
+
+        body.light-theme .loading {
+            color: #5f6368;
+        }
+
+        body.light-theme .properties-dialog {
+            background: white;
+            color: #202124;
+        }
+
+        body.light-theme .properties-header {
+            border-bottom: 1px solid #e1e5e9;
+        }
+
+        body.light-theme .properties-title {
+            color: #202124;
+        }
+
+        body.light-theme .property-group:not(:last-child)::after {
+            background: linear-gradient(90deg, transparent, #e1e5e9, transparent);
+        }
+
+        body.light-theme .property-label {
+            color: #5f6368;
+        }
+
+        body.light-theme .property-value {
+            color: #202124;
+        }
+
+        body.light-theme .properties-footer {
+            border-top: 1px solid #e1e5e9;
+        }
+
+        body.light-theme .toast {
+            background: #202124;
+            color: white;
+        }
+
+        body.light-theme .upload-area {
+            background: white;
+            border: 2px dashed #dadce0;
+        }
+
+        body.light-theme .upload-area:hover {
+            border-color: #4285f4;
+            background: #f8f9fa;
+        }
+
+        body.light-theme .upload-icon {
+            color: #9aa0a6;
+        }
+
+        body.light-theme .upload-text {
+            color: #5f6368;
+        }
+
+        body.light-theme .folder-selected-message {
+            background: white;
+            border: 2px solid #e8f0fe;
+        }
+
+        body.light-theme .folder-selected-text {
+            color: #5f6368;
+        }
+
+        body.light-theme .folder-selected-subtitle {
+            color: #9aa0a6;
         }
 
         /* 상단 툴바 */
@@ -136,7 +346,7 @@
         }
 
         .sidebar.icon-panel-open.thumbnails-open {
-            width: 298px; /* 48px (아이콘) + 250px (썸네일) */
+            width: 318px; /* 폴더와 동일한 크기로 고정 */
         }
 
         .sidebar.icon-panel-open.folder-open {
@@ -144,7 +354,7 @@
         }
 
         .sidebar.icon-panel-open.thumbnails-open.folder-open {
-            width: 318px; /* 폴더가 우선 */
+            width: 318px; /* 고정 크기 유지 */
         }
 
         /* 아이콘 패널 */
@@ -205,7 +415,7 @@
 
         /* 썸네일 섹션 */
         .thumbnails-section {
-            width: 250px;
+            width: 270px;
             flex-shrink: 0;
             overflow-y: auto;
             padding: 16px;
@@ -953,7 +1163,7 @@
             }
             
             .sidebar.icon-panel-open.thumbnails-open {
-                width: 240px; /* 40px (아이콘) + 200px (썸네일) */
+                width: 250px; /* 폴더와 동일한 크기로 고정 */
             }
 
             .sidebar.icon-panel-open.folder-open {
@@ -961,7 +1171,7 @@
             }
 
             .sidebar.icon-panel-open.thumbnails-open.folder-open {
-                width: 250px; /* 폴더가 우선 */
+                width: 250px; /* 고정 크기 유지 */
             }
             
             .icon-panel {
@@ -978,7 +1188,7 @@
             }
             
             .thumbnails-section {
-                width: 200px;
+                width: 210px;
                 padding-top: 8px;
             }
 
@@ -1015,7 +1225,7 @@
             }
             
             .toolbar-section.right {
-                flex: 0.2;
+                flex: 0.4;
             }
             
             .file-title {
@@ -1105,6 +1315,7 @@
         </div>
 
         <div class="toolbar-section right">
+            <button class="toolbar-btn" id="themeToggleBtn" title="다크모드">🌙</button>
             <button class="toolbar-btn" id="propertiesBtn" title="문서 속성 (Ctrl+I)">⋮</button>
         </div>
     </div>
@@ -1157,6 +1368,7 @@
                     <strong style="color: #4285f4;">• 폴더 탐색기:</strong> <strong>📁 아이콘</strong>으로 선택된 폴더의 모든 폴더와 PDF 파일들 관리<br>
                     <strong style="color: #4285f4;">• 페이지 썸네일:</strong> <strong>🖼️ 아이콘</strong>으로 페이지 썸네일 보기 및 빠른 이동<br>
                     <strong style="color: #4285f4;">• 문서 속성:</strong> <strong>⋮ 버튼</strong> 또는 <strong>Ctrl+I</strong>로 문서 정보 확인<br>
+                    <strong style="color: #4285f4;">• 테마 변경:</strong> <strong>🌙 버튼</strong>으로 다크모드/라이트모드/시스템 설정 순환<br>
                     <strong style="color: #4285f4;">• 스마트 복사:</strong> <strong>Ctrl+C</strong>로 텍스트 선택 시 텍스트 복사, 미선택 시 이미지 복사<br>
                     <strong style="color: #4285f4;">• 영역 캡쳐:</strong> <strong>✂️ 버튼</strong> 또는 <strong>Ctrl+Shift+X</strong>로 원하는 영역을 드래그하여 선택 후 클립보드 복사<br>
                     <strong style="color: #4285f4;">• 사이드바 토글:</strong> <strong>☰ 버튼</strong> 또는 <strong>Ctrl+B</strong>로 사이드바 열기/닫기<br>
@@ -1269,6 +1481,9 @@
                 this.initializeZoomSelect();
                 this.bindEvents();
                 
+                // 초기 테마 설정
+                this.initializeTheme();
+                
                 // 초기 상태에서 썸네일 버튼 비활성화
                 this.thumbnailsBtn.disabled = true;
             }
@@ -1338,6 +1553,10 @@
                 this.propertiesModal = document.getElementById('propertiesModal');
                 this.propertiesCloseBtnFooter = document.getElementById('propertiesCloseBtnFooter');
                 this.propertiesContent = document.getElementById('propertiesContent');
+                
+                // 테마 토글 관련 요소들
+                this.themeToggleBtn = document.getElementById('themeToggleBtn');
+                this.currentTheme = 'dark'; // 'dark', 'light', 'system'
             }
 
             bindEvents() {
@@ -1415,6 +1634,21 @@
                 this.folderInput.addEventListener('change', (e) => {
                     this.handleFolderSelect(e);
                 });
+                
+                // 테마 토글 이벤트
+                this.themeToggleBtn.addEventListener('click', () => {
+                    this.toggleTheme();
+                });
+                
+                // 시스템 테마 변경 감지
+                if (window.matchMedia) {
+                    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                    mediaQuery.addEventListener('change', () => {
+                        if (this.currentTheme === 'system') {
+                            this.applySystemTheme();
+                        }
+                    });
+                }
                 
                 // 문서 속성 이벤트들
                 this.propertiesBtn.addEventListener('click', () => {
@@ -1502,6 +1736,50 @@
                 this.captureOverlay.addEventListener('mousemove', (e) => this.updateSelection(e));
                 this.captureOverlay.addEventListener('mouseup', (e) => this.endSelection(e));
                 this.captureOverlay.addEventListener('mouseleave', (e) => this.cancelSelection(e));
+            }
+
+            // 초기 테마 설정
+            initializeTheme() {
+                // 기본적으로 시스템 설정으로 시작
+                this.currentTheme = 'system';
+                this.themeToggleBtn.textContent = '⚙️';
+                this.themeToggleBtn.title = '시스템 설정';
+                this.applySystemTheme();
+            }
+
+            // 테마 토글 기능
+            toggleTheme() {
+                switch (this.currentTheme) {
+                    case 'dark':
+                        this.currentTheme = 'light';
+                        this.themeToggleBtn.textContent = '☀️';
+                        this.themeToggleBtn.title = '라이트모드';
+                        document.body.classList.add('light-theme');
+                        break;
+                    case 'light':
+                        this.currentTheme = 'system';
+                        this.themeToggleBtn.textContent = '⚙️';
+                        this.themeToggleBtn.title = '시스템 설정';
+                        this.applySystemTheme();
+                        break;
+                    case 'system':
+                        this.currentTheme = 'dark';
+                        this.themeToggleBtn.textContent = '🌙';
+                        this.themeToggleBtn.title = '다크모드';
+                        document.body.classList.remove('light-theme');
+                        break;
+                }
+            }
+
+            // 시스템 테마 적용
+            applySystemTheme() {
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    // 시스템이 다크모드
+                    document.body.classList.remove('light-theme');
+                } else {
+                    // 시스템이 라이트모드
+                    document.body.classList.add('light-theme');
+                }
             }
 
             // 문서 속성 표시
