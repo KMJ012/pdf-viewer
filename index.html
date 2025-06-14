@@ -1,0 +1,3207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF 폴더 뷰어 - 스마트 복사 기능</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 상단 툴바 */
+        .toolbar {
+            background: rgb(60, 60, 60);
+            border-bottom: 1px solid #333;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-shrink: 0;
+            height: 63px;
+            box-sizing: border-box;
+            z-index: 1000;
+        }
+
+        .toolbar-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .toolbar-section.left {
+            flex: 1;
+            justify-content: flex-start;
+        }
+
+        .toolbar-section.center {
+            flex: 0 0 auto;
+            justify-content: center;
+        }
+
+        .toolbar-section.right {
+            flex: 1;
+            justify-content: flex-end;
+        }
+
+        .toolbar-divider {
+            color: #888;
+            font-size: 14px;
+            margin: 0 4px;
+        }
+
+        .file-title {
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            max-width: 350px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .fit-toggle-btn {
+            background: transparent;
+            border: none;
+            border-radius: 50%;
+            padding: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            color: #fff;
+            transition: all 0.2s ease;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fit-toggle-btn:hover {
+            background: rgba(75, 75, 75, 0.5);
+        }
+
+        .fit-toggle-btn.active {
+            background: #4285f4;
+            color: #fff;
+        }
+
+        .fit-toggle-btn.active:hover {
+            background: #3367d6;
+        }
+
+        .toolbar-btn.capture-mode {
+            background: #ff6b6b;
+            color: #fff;
+        }
+
+        .toolbar-btn.capture-mode:hover {
+            background: #ff5252;
+        }
+
+        /* 메인 레이아웃 컨테이너 */
+        .main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* 사이드바 */
+        .sidebar {
+            width: 0;
+            background: rgb(50, 50, 50);
+            border-right: 1px solid #333;
+            transition: width 0.3s ease;
+            overflow: hidden;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: row;
+            position: relative;
+        }
+
+        .sidebar.icon-panel-open {
+            width: 48px;
+        }
+
+        .sidebar.icon-panel-open.thumbnails-open {
+            width: 298px; /* 48px (아이콘) + 250px (썸네일) */
+        }
+
+        .sidebar.icon-panel-open.folder-open {
+            width: 318px; /* 48px (아이콘) + 270px (폴더) */
+        }
+
+        .sidebar.icon-panel-open.thumbnails-open.folder-open {
+            width: 318px; /* 폴더가 우선 */
+        }
+
+        /* 아이콘 패널 */
+        .icon-panel {
+            width: 48px;
+            background: rgb(45, 45, 45);
+            border-right: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 0;
+            flex-shrink: 0;
+            opacity: 0;
+            transform: translateX(-100%);
+            transition: all 0.3s ease;
+            z-index: 200;
+            pointer-events: auto;
+        }
+
+        .sidebar.icon-panel-open .icon-panel {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: auto;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            background: transparent;
+            border: none;
+            border-radius: 4px;
+            color: #ccc;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 4px;
+            pointer-events: auto;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .icon-btn.active {
+            background: #4285f4;
+            color: #fff;
+        }
+
+        .icon-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* 썸네일 섹션 */
+        .thumbnails-section {
+            width: 250px;
+            flex-shrink: 0;
+            overflow-y: auto;
+            padding: 16px;
+            padding-top: 8px;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar.thumbnails-open .thumbnails-section {
+            display: block;
+            opacity: 1;
+        }
+
+        /* 폴더 탐색기 섹션 */
+        .folder-section {
+            width: 270px;
+            flex-shrink: 0;
+            overflow-y: auto;
+            padding: 8px;
+            background: rgb(50, 50, 50);
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar.folder-open .folder-section {
+            display: block;
+            opacity: 1;
+        }
+
+        .folder-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 4px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #444;
+        }
+
+        .folder-title {
+            color: #ccc;
+            font-size: 13px;
+            font-weight: bold;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .folder-select-btn {
+            background: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .folder-select-btn:hover {
+            background: #3367d6;
+        }
+
+        .folder-tree {
+            color: #ccc;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .folder-item {
+            display: flex;
+            align-items: center;
+            padding: 2px 4px;
+            cursor: pointer;
+            border-radius: 3px;
+            user-select: none;
+            transition: background 0.1s ease;
+        }
+
+        .folder-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .folder-item.selected {
+            background: #4285f4;
+            color: white;
+        }
+
+        .folder-item.pdf-file {
+            color: #fff;
+        }
+
+        .folder-item.pdf-file:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .folder-item.pdf-file.selected {
+            background: #4285f4;
+        }
+
+        .folder-indent {
+            margin-left: 16px;
+        }
+
+        .folder-icon {
+            width: 16px;
+            height: 16px;
+            margin-right: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .folder-icon.expandable {
+            cursor: pointer;
+            color: #888;
+        }
+
+        .folder-icon.expandable:hover {
+            color: #ccc;
+        }
+
+        .folder-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .folder-empty {
+            color: #888;
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px dashed transparent;
+            user-select: none;
+        }
+
+        .folder-empty:hover {
+            background: rgba(66, 133, 244, 0.2);
+            border-color: #4285f4;
+            color: #ccc;
+            transform: scale(1.02);
+        }
+
+        .folder-empty.dragover {
+            background: rgba(66, 133, 244, 0.3);
+            border-color: #4285f4;
+            color: #fff;
+            transform: scale(1.05);
+        }
+
+        .thumbnails-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .thumbnail-item {
+            position: relative;
+            border: 2px solid transparent;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #444;
+            overflow: hidden;
+        }
+
+        .thumbnail-item:hover {
+            border-color: #4285f4;
+        }
+
+        .thumbnail-item.active {
+            border-color: #4285f4;
+            box-shadow: 0 0 8px rgba(66, 133, 244, 0.5);
+        }
+
+        .thumbnail-canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .thumbnail-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-size: 12px;
+            text-align: center;
+            padding: 4px;
+        }
+
+        .loading-thumbnails {
+            color: #ccc;
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+        }
+
+        /* 메인 콘텐츠 영역 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: margin-left 0.3s ease;
+        }
+
+        .toolbar-btn {
+            background: transparent;
+            border: none;
+            border-radius: 50%;
+            padding: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            color: #fff;
+            transition: all 0.2s ease;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toolbar-btn:hover {
+            background: rgba(75, 75, 75, 0.5);
+        }
+
+        .toolbar-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .toolbar-input {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            padding: 5px 8px;
+            font-size: 13px;
+            min-width: 35px;
+            text-align: center;
+            color: #fff;
+            background: rgb(30, 30, 30);
+            transition: all 0.2s ease;
+        }
+
+        #pageInput {
+            margin-right: -10px;
+        }
+
+        #zoomOut, #zoomIn {
+            font-size: 25px;
+            transition: color 0.2s ease;
+        }
+
+        #zoomOut.disabled, #zoomIn.disabled {
+            color: rgb(129, 129, 129);
+            cursor: not-allowed;
+        }
+
+        #zoomOut {
+            margin-right: -10px;
+        }
+
+        #zoomIn {
+            margin-left: -10px;
+        }
+
+        .toolbar-input:focus {
+            outline: none;
+            border-color: #4285f4;
+            background: rgb(35, 35, 35);
+        }
+
+        .toolbar-input:hover {
+            background: rgb(35, 35, 35);
+        }
+
+        /* 숫자 입력 필드의 증가/감소 버튼 숨기기 */
+        .toolbar-input::-webkit-outer-spin-button,
+        .toolbar-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            appearance: none;
+            margin: 0;
+        }
+
+        .toolbar-input[type=number] {
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        .zoom-select {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            padding: 5px 8px;
+            font-size: 13px;
+            background: rgb(30, 30, 30);
+            color: #fff;
+            cursor: pointer;
+            min-width: 70px;
+            text-align: center;
+            transition: all 0.2s ease;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        .zoom-select:hover {
+            background: rgb(35, 35, 35);
+        }
+
+        .zoom-select:focus {
+            outline: none;
+            border-color: #4285f4;
+            background: rgb(35, 35, 35);
+        }
+
+        .zoom-select option {
+            background: rgb(30, 30, 30);
+            color: #fff;
+        }
+
+        .page-divider {
+            color: #ccc;
+            font-size: 13px;
+            margin: 0 6px;
+        }
+
+        /* 업로드 영역 */
+        .upload-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border: 2px dashed #dadce0;
+            margin: 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            border-color: #4285f4;
+            background: #f8f9fa;
+        }
+
+        .upload-area.dragover {
+            border-color: #4285f4;
+            background: #e8f0fe;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            color: #9aa0a6;
+            margin-bottom: 16px;
+        }
+
+        .upload-text {
+            font-size: 16px;
+            color: #5f6368;
+            margin-bottom: 16px;
+        }
+
+        .upload-btn {
+            background: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .upload-btn:hover {
+            background: #3367d6;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        /* 폴더 선택 완료 메시지 */
+        .folder-selected-message {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border: 2px solid #e8f0fe;
+            margin: 20px;
+            border-radius: 8px;
+            padding: 40px;
+        }
+
+        .folder-selected-icon {
+            font-size: 4em;
+            color: #4285f4;
+            margin-bottom: 20px;
+        }
+
+        .folder-selected-text {
+            font-size: 18px;
+            color: #5f6368;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .folder-selected-subtitle {
+            font-size: 14px;
+            color: #9aa0a6;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        /* PDF 뷰어 */
+        .pdf-viewer {
+            display: none;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .pdf-container {
+            flex: 1;
+            background: rgb(40, 40, 40);
+            overflow: auto;
+            position: relative;
+        }
+
+        .pdf-wrapper {
+            position: relative;
+            min-width: 100%;
+            min-height: 100%;
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-start;
+        }
+
+        .pdf-content {
+            position: relative;
+            display: inline-block;
+            margin: 20px;
+        }
+
+        #pdfImage {
+            display: block;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            max-width: none;
+            max-height: none;
+            position: relative;
+            z-index: 1;
+            transition: transform 0.2s ease;
+            will-change: transform;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+        }
+
+        /* 숨겨진 캔버스 (렌더링용) */
+        #pdfCanvas {
+            display: none;
+            position: absolute;
+            top: -9999px;
+            left: -9999px;
+        }
+
+        .text-layer {
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            opacity: 1;
+            line-height: 1.0;
+            pointer-events: auto;
+            z-index: 2;
+            transition: transform 0.2s ease;
+            will-change: transform;
+        }
+
+        .text-layer span {
+            color: transparent;
+            position: absolute;
+            white-space: pre;
+            cursor: text;
+            transform-origin: 0% 0%;
+            user-select: text;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            font-family: sans-serif;
+        }
+
+        .text-layer span::selection {
+            background: rgba(0, 100, 255, 0.3);
+            color: rgb(166, 192, 215);
+        }
+
+        .text-layer span::-moz-selection {
+            background: rgba(0, 100, 255, 0.3);
+            color: rgb(166, 192, 215);
+        }
+
+        /* 캡쳐 오버레이 */
+        .capture-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 10;
+            cursor: crosshair;
+            display: none;
+            pointer-events: none;
+        }
+
+        .capture-overlay.active {
+            display: block;
+            pointer-events: auto;
+        }
+
+        .selection-area {
+            position: absolute;
+            border: 2px dashed #4285f4;
+            background: rgba(66, 133, 244, 0.1);
+            pointer-events: none;
+            display: none;
+        }
+
+        .capture-guide {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            z-index: 11;
+            display: none;
+        }
+
+        .capture-guide.show {
+            display: block;
+        }
+
+        /* 토스트 알림 */
+        .toast-container {
+            position: fixed;
+            top: 76px;
+            right: 20px;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: #323232;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 8px;
+            transform: translateX(400px);
+            transition: all 0.3s ease;
+            opacity: 0;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .toast.hide {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+
+        /* 로딩 */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ccc;
+            font-size: 16px;
+        }
+
+        /* 모바일 대응 */
+        @media (max-width: 768px) {
+            .sidebar.icon-panel-open {
+                width: 40px;
+            }
+            
+            .sidebar.icon-panel-open.thumbnails-open {
+                width: 240px; /* 40px (아이콘) + 200px (썸네일) */
+            }
+
+            .sidebar.icon-panel-open.folder-open {
+                width: 250px; /* 40px (아이콘) + 210px (폴더) */
+            }
+
+            .sidebar.icon-panel-open.thumbnails-open.folder-open {
+                width: 250px; /* 폴더가 우선 */
+            }
+            
+            .icon-panel {
+                width: 40px;
+                z-index: 200;
+                pointer-events: auto;
+            }
+            
+            .icon-btn {
+                width: 32px;
+                height: 32px;
+                font-size: 16px;
+                pointer-events: auto;
+            }
+            
+            .thumbnails-section {
+                width: 200px;
+                padding-top: 8px;
+            }
+
+            .folder-section {
+                width: 210px;
+                padding: 6px;
+            }
+
+            .folder-title {
+                font-size: 12px;
+            }
+
+            .folder-select-btn {
+                font-size: 10px;
+                padding: 3px 6px;
+            }
+
+            .toolbar {
+                padding: 8px 12px;
+                gap: 10px;
+                height: 63px;
+            }
+            
+            .toolbar-section {
+                gap: 6px;
+            }
+            
+            .toolbar-section.left {
+                flex: 0.6;
+            }
+            
+            .toolbar-section.center {
+                flex: 1.8;
+            }
+            
+            .toolbar-section.right {
+                flex: 0.2;
+            }
+            
+            .file-title {
+                max-width: 180px;
+                font-size: 12px;
+            }
+
+            .toolbar-btn, .fit-toggle-btn {
+                width: 32px;
+                height: 32px;
+                font-size: 14px;
+                padding: 6px;
+            }
+
+            .toolbar-divider {
+                font-size: 12px;
+            }
+
+            .zoom-select {
+                min-width: 55px;
+                font-size: 12px;
+                padding: 4px 8px;
+            }
+
+            .toolbar-input {
+                min-width: 30px;
+                font-size: 12px;
+                padding: 4px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 상단 툴바 -->
+    <div class="toolbar" id="toolbar" style="display: none;">
+        <div class="toolbar-section left">
+            <button class="toolbar-btn" id="sidebarToggle" title="사이드바 열기/닫기 (Ctrl+B)">☰</button>
+            <span class="file-title" id="fileTitle">PDF 파일</span>
+        </div>
+
+        <div class="toolbar-section center">
+            <input type="number" class="toolbar-input" id="pageInput" min="1" value="1">
+            <span class="page-divider">/ <span id="totalPages">1</span></span>
+            <div class="toolbar-divider">|</div>
+            <button class="toolbar-btn" id="zoomOut">-</button>
+            <select class="zoom-select" id="zoomSelect">
+                <!-- 옵션들은 JavaScript에서 동적으로 생성 -->
+            </select>
+            <button class="toolbar-btn" id="zoomIn">+</button>
+            <div class="toolbar-divider">|</div>
+            <button class="toolbar-btn fit-toggle-btn" id="fitToggleBtn" title="페이지 맞춤 / 너비 맞춤 전환">↕️</button>
+            <button class="toolbar-btn" id="captureBtn" title="영역 캡쳐 (Ctrl+Shift+X)">✂️</button>
+        </div>
+
+        <div class="toolbar-section right">
+            <!-- 오른쪽은 비워둠 -->
+        </div>
+    </div>
+
+    <!-- 메인 레이아웃 -->
+    <div class="main-layout">
+        <!-- 사이드바 -->
+        <div class="sidebar" id="sidebar">
+            <!-- 아이콘 패널 -->
+            <div class="icon-panel">
+                <button class="icon-btn" id="folderBtn" title="폴더 탐색기">📁</button>
+                <button class="icon-btn" id="thumbnailsBtn" title="페이지 썸네일" disabled>🖼️</button>
+            </div>
+            
+            <!-- 썸네일 섹션 -->
+            <div class="thumbnails-section">
+                <div class="thumbnails-container" id="thumbnailsContainer">
+                    <div class="loading-thumbnails" id="loadingThumbnails">
+                        PDF를 로드해주세요
+                    </div>
+                </div>
+            </div>
+
+            <!-- 폴더 탐색기 섹션 -->
+            <div class="folder-section">
+                <div class="folder-header">
+                    <span class="folder-title" id="folderTitle">📁 폴더 탐색기</span>
+                    <button class="folder-select-btn" id="selectFolderBtn">폴더 선택</button>
+                </div>
+                <div class="folder-tree" id="folderTree">
+                    <div class="folder-empty" id="folderEmptyArea">📁 폴더를 선택하거나 PDF 파일들을 여기로 드래그하세요</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 메인 콘텐츠 영역 -->
+        <div class="main-content" id="mainContent">
+            <!-- 파일 입력 요소들 (uploadArea 밖으로 이동) -->
+            <input type="file" class="file-input" id="fileInput" accept=".pdf">
+            <input type="file" class="file-input" id="folderInput" webkitdirectory directory multiple accept=".pdf">
+            
+            <!-- 업로드 영역 -->
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">PDF가 들어있는 폴더를 선택하세요</div>
+                <button class="upload-btn">폴더 선택</button>
+                <div style="margin-top: 20px; text-align: center; color: #9aa0a6; font-size: 14px; line-height: 1.6;">
+                    <strong style="color: #5f6368;">사용법:</strong><br>
+                    <strong style="color: #4285f4;">• 폴더 선택:</strong> <strong>폴더 선택 버튼</strong>으로 PDF가 들어있는 폴더 선택<br>
+                    <strong style="color: #4285f4;">• 폴더 탐색기:</strong> <strong>📁 아이콘</strong>으로 선택된 폴더의 PDF 파일들 관리<br>
+                    <strong style="color: #4285f4;">• 페이지 썸네일:</strong> <strong>🖼️ 아이콘</strong>으로 페이지 썸네일 보기 및 빠른 이동<br>
+                    <strong style="color: #4285f4;">• 스마트 복사:</strong> <strong>Ctrl+C</strong>로 텍스트 선택 시 텍스트 복사, 미선택 시 이미지 복사<br>
+                    <strong style="color: #4285f4;">• 영역 캡쳐:</strong> <strong>✂️ 버튼</strong> 또는 <strong>Ctrl+Shift+X</strong>로 원하는 영역을 드래그하여 선택 후 클립보드 복사<br>
+                    <strong style="color: #4285f4;">• 사이드바 토글:</strong> <strong>☰ 버튼</strong> 또는 <strong>Ctrl+B</strong>로 사이드바 열기/닫기<br>
+                    <strong style="color: #4285f4;">• 스마트 전체 선택:</strong> <strong>Ctrl+A</strong>로 페이지 입력 필드 포커스 시 해당 필드만, 그 외엔 PDF 텍스트 전체 선택<br>
+                    <strong style="color: #4285f4;">• 텍스트 선택:</strong> PDF 내 텍스트를 마우스로 드래그해서 선택 가능<br>
+                    <strong style="color: #4285f4;">• 마우스 중심 확대:</strong> Ctrl+휠로 마우스 커서 중심 확대/축소<br>
+                    <strong style="color: #4285f4;">• 페이지 네비게이션:</strong> 화살표 키로 페이지 이동<br>
+                    <strong style="color: #4285f4;">• 맞춤 모드:</strong> ↕️/↔️ 버튼으로 페이지 맞춤과 너비 맞춤 토글<br>
+                    <strong style="color: #4285f4;">• ESC 키:</strong> 캡쳐 모드 종료 또는 사이드바 닫기<br>
+                    <strong style="color: #4285f4;">• 최적화 렌더링:</strong> 성능과 품질의 균형잡힌 표시
+                </div>
+            </div>
+
+            <!-- 폴더 선택 완료 메시지 -->
+            <div class="folder-selected-message" id="folderSelectedMessage" style="display: none;">
+                <div class="folder-selected-icon">📂</div>
+                <div class="folder-selected-text">폴더가 선택되었습니다!</div>
+                <div class="folder-selected-subtitle">
+                    왼쪽 폴더 탐색기에서 PDF 파일을 클릭하여 열어보세요.<br>
+                    📁 폴더 아이콘을 클릭하면 폴더 탐색기를 열 수 있습니다.
+                </div>
+            </div>
+
+            <!-- PDF 뷰어 -->
+            <div class="pdf-viewer" id="pdfViewer">
+                <div class="pdf-container" id="pdfContainer">
+                    <div class="pdf-wrapper" id="pdfWrapper">
+                        <div class="pdf-content" id="pdfContent">
+                            <img id="pdfImage" alt="PDF Page">
+                            <canvas id="pdfCanvas"></canvas>
+                            <div class="text-layer" id="textLayer"></div>
+                            <div class="capture-overlay" id="captureOverlay">
+                                <div class="capture-guide" id="captureGuide">드래그하여 캡쳐할 영역을 선택하세요 (ESC: 종료)</div>
+                                <div class="selection-area" id="selectionArea"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="loading" id="loading" style="display: none;">로딩중...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 토스트 알림 컨테이너 -->
+    <div class="toast-container" id="toastContainer">
+    </div>
+
+    <script>
+        // PDF.js 워커 설정
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        class PDFClipboard {
+            constructor() {
+                this.pdf = null;
+                this.currentPage = 1;
+                this.totalPages = 0;
+                this.scale = 1.0;
+                this.fitMode = 'none'; // 'width', 'page', 'none'
+                
+                // 성능 최적화된 렌더링 설정
+                this.pixelRatio = window.devicePixelRatio || 1;
+                this.renderScale = 3.0; // 고품질 렌더링 스케일
+                
+                // 원본 페이지 크기 저장 (중요!)
+                this.originalPageWidth = 0;
+                this.originalPageHeight = 0;
+                
+                // 렌더링 작업 관리
+                this.currentRenderTask = null;
+                
+                // 디바운스 타이머들
+                this.textLayerTimeout = null;
+                this.isZooming = false;
+                
+                // 캡쳐 기능 관련
+                this.isCaptureMode = false;
+                this.isSelecting = false;
+                this.selectionStart = { x: 0, y: 0 };
+                this.selectionEnd = { x: 0, y: 0 };
+                
+                // 사이드바 관련
+                this.isIconPanelOpen = false;
+                this.isThumbnailsOpen = false;
+                this.isFolderOpen = false;
+                this.currentSidebarType = 'thumbnails'; // 'thumbnails' or 'folder'
+                this.lastOpenedSidebarType = 'folder'; // 마지막에 열려있던 탭 기억
+                this.thumbnails = [];
+                this.folderStructure = null;
+                this.currentFolder = null;
+                this.selectedFile = null;
+                this.currentFolderName = null; // 폴더명 저장
+                
+                this.initElements();
+                this.initializeZoomSelect();
+                this.bindEvents();
+                
+                // 초기 상태에서 썸네일 버튼 비활성화
+                this.thumbnailsBtn.disabled = true;
+            }
+
+            initializeZoomSelect() {
+                const defaultOptions = [25, 50, 75, 100, 125, 150, 200, 300, 400, 500];
+                this.zoomSelect.innerHTML = '';
+                
+                defaultOptions.forEach(zoom => {
+                    const option = document.createElement('option');
+                    option.value = zoom;
+                    option.textContent = zoom + '%';
+                    if (zoom === 100) {
+                        option.selected = true;
+                    }
+                    this.zoomSelect.appendChild(option);
+                });
+                
+                // 초기 배율 선택 박스 크기 설정
+                this.updateZoomSelectWidth();
+            }
+
+            initElements() {
+                this.uploadArea = document.getElementById('uploadArea');
+                this.fileInput = document.getElementById('fileInput');
+                this.toolbar = document.getElementById('toolbar');
+                this.pdfViewer = document.getElementById('pdfViewer');
+                this.pdfContainer = document.getElementById('pdfContainer');
+                this.pdfWrapper = document.getElementById('pdfWrapper');
+                this.pdfContent = document.getElementById('pdfContent');
+                this.pdfImage = document.getElementById('pdfImage'); // 이미지 요소
+                this.canvas = document.getElementById('pdfCanvas'); // 숨겨진 캔버스 (렌더링용)
+                this.ctx = this.canvas.getContext('2d');
+                this.textLayer = document.getElementById('textLayer');
+                this.pageInput = document.getElementById('pageInput');
+                this.totalPagesSpan = document.getElementById('totalPages');
+                this.zoomIn = document.getElementById('zoomIn');
+                this.zoomOut = document.getElementById('zoomOut');
+                this.zoomSelect = document.getElementById('zoomSelect');
+                this.fitToggleBtn = document.getElementById('fitToggleBtn');
+                this.captureBtn = document.getElementById('captureBtn');
+                this.sidebarToggle = document.getElementById('sidebarToggle');
+                this.fileTitle = document.getElementById('fileTitle');
+                this.toastContainer = document.getElementById('toastContainer');
+                this.loading = document.getElementById('loading');
+                this.folderSelectedMessage = document.getElementById('folderSelectedMessage');
+                
+                // 새로운 UI 요소들
+                this.mainContent = document.getElementById('mainContent');
+                this.sidebar = document.getElementById('sidebar');
+                this.thumbnailsBtn = document.getElementById('thumbnailsBtn');
+                this.folderBtn = document.getElementById('folderBtn');
+                this.thumbnailsContainer = document.getElementById('thumbnailsContainer');
+                this.loadingThumbnails = document.getElementById('loadingThumbnails');
+                this.folderInput = document.getElementById('folderInput');
+                this.selectFolderBtn = document.getElementById('selectFolderBtn');
+                this.folderTree = document.getElementById('folderTree');
+                this.folderTitle = document.getElementById('folderTitle'); // 폴더 제목 요소 추가
+                
+                // 캡쳐 관련 요소들
+                this.captureOverlay = document.getElementById('captureOverlay');
+                this.captureGuide = document.getElementById('captureGuide');
+                this.selectionArea = document.getElementById('selectionArea');
+            }
+
+            bindEvents() {
+                // 폴더 업로드 (기본 동작을 폴더 선택으로 변경)
+                this.uploadArea.addEventListener('click', () => this.folderInput.click());
+                this.fileInput.addEventListener('change', (e) => this.handleFile(e.target.files[0]));
+                
+                // 드래그 앤 드롭
+                this.uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    this.uploadArea.classList.add('dragover');
+                });
+                
+                this.uploadArea.addEventListener('dragleave', () => {
+                    this.uploadArea.classList.remove('dragover');
+                });
+                
+                this.uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    this.uploadArea.classList.remove('dragover');
+                    const files = Array.from(e.dataTransfer.files);
+                    
+                    // PDF 파일만 필터링
+                    const pdfFiles = files.filter(file => file.type === 'application/pdf');
+                    
+                    if (pdfFiles.length === 0) {
+                        alert('PDF 파일만 업로드 가능합니다!');
+                        return;
+                    }
+                    
+                    if (pdfFiles.length === 1) {
+                        // 단일 PDF 파일이면 바로 열기
+                        this.handleFile(pdfFiles[0]);
+                    } else {
+                        // 여러 PDF 파일이면 폴더 구조로 만들어서 폴더 탐색기에 표시
+                        this.buildFolderStructureFromDroppedFiles(pdfFiles);
+                        
+                        // 폴더 선택 완료 메시지 표시
+                        this.showFolderSelectedMessage();
+                        
+                        // 아이콘 패널이 안 열려있으면 열기
+                        if (!this.isIconPanelOpen) {
+                            this.toggleIconPanel();
+                            // 애니메이션 시간을 기다린 후 폴더 탭 열기
+                            setTimeout(() => {
+                                this.openFolder();
+                                this.renderFolderTree();
+                            }, 200);
+                        } else {
+                            // 이미 열려있으면 바로 폴더 탭 열기
+                            this.openFolder();
+                            this.renderFolderTree();
+                        }
+                        
+                        this.showToastMessage(`✅ ${pdfFiles.length}개의 PDF 파일을 추가했습니다`);
+                    }
+                });
+
+                // 새로운 UI 이벤트들
+                this.sidebarToggle.addEventListener('click', () => {
+                    this.toggleIconPanel();
+                });
+                this.thumbnailsBtn.addEventListener('click', () => {
+                    this.toggleThumbnails();
+                });
+                this.folderBtn.addEventListener('click', () => {
+                    this.toggleFolder();
+                });
+                this.selectFolderBtn.addEventListener('click', (e) => {
+                    this.openFolderDialog(e);
+                });
+                this.folderInput.addEventListener('change', (e) => {
+                    this.handleFolderSelect(e);
+                });
+                
+                // 초기 빈 영역 클릭 이벤트
+                const initialEmptyArea = document.getElementById('folderEmptyArea');
+                if (initialEmptyArea) {
+                    initialEmptyArea.addEventListener('click', (e) => {
+                        this.openFolderDialog(e);
+                    });
+                    
+                    // 초기 빈 영역 드래그 앤 드롭 이벤트
+                    initialEmptyArea.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        initialEmptyArea.classList.add('dragover');
+                    });
+                    
+                    initialEmptyArea.addEventListener('dragleave', () => {
+                        initialEmptyArea.classList.remove('dragover');
+                    });
+                    
+                    initialEmptyArea.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        initialEmptyArea.classList.remove('dragover');
+                        
+                        const files = Array.from(e.dataTransfer.files);
+                        const pdfFiles = files.filter(file => file.type === 'application/pdf');
+                        
+                        if (pdfFiles.length > 0) {
+                            this.buildFolderStructureFromDroppedFiles(pdfFiles);
+                            this.renderFolderTree();
+                            this.showToastMessage(`✅ ${pdfFiles.length}개의 PDF 파일을 추가했습니다`);
+                        } else {
+                            this.showToastMessage('❌ PDF 파일만 드롭할 수 있습니다');
+                        }
+                    });
+                }
+
+                // 줌 컨트롤
+                this.zoomIn.addEventListener('click', () => {
+                    if (!this.zoomIn.classList.contains('disabled')) {
+                        this.zoomPage(1.25);
+                    }
+                });
+                this.zoomOut.addEventListener('click', () => {
+                    if (!this.zoomOut.classList.contains('disabled')) {
+                        this.zoomPage(0.8);
+                    }
+                });
+                this.zoomSelect.addEventListener('change', () => this.setZoomFromSelect());
+
+                // 맞춤 토글 버튼
+                this.fitToggleBtn.addEventListener('click', () => this.toggleFit());
+
+                // 캡쳐 버튼
+                this.captureBtn.addEventListener('click', () => this.toggleCaptureMode());
+
+                // 페이지 입력
+                this.pageInput.addEventListener('change', () => this.goToPage());
+                this.pageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.goToPage();
+                });
+
+                // 키보드 이벤트
+                document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+
+                // 마우스 휠 이벤트
+                this.pdfContainer.addEventListener('wheel', (e) => this.handleWheel(e));
+
+                // 윈도우 리사이즈
+                window.addEventListener('resize', () => this.handleResize());
+                
+                // 캡쳐 오버레이 이벤트
+                this.captureOverlay.addEventListener('mousedown', (e) => this.startSelection(e));
+                this.captureOverlay.addEventListener('mousemove', (e) => this.updateSelection(e));
+                this.captureOverlay.addEventListener('mouseup', (e) => this.endSelection(e));
+                this.captureOverlay.addEventListener('mouseleave', (e) => this.cancelSelection(e));
+            }
+
+            // 폴더 선택 다이얼로그 열기 메서드 추가
+            openFolderDialog() {
+                console.log('폴더 선택 다이얼로그 열기');
+                this.folderInput.click();
+            }
+
+            async handleFile(file) {
+                if (!file || file.type !== 'application/pdf') {
+                    alert('PDF 파일만 업로드 가능합니다!');
+                    return;
+                }
+
+                this.loading.style.display = 'block';
+                
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    this.pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+                    this.totalPages = this.pdf.numPages;
+                    this.currentPage = 1;
+                    
+                    // 파일 제목 업데이트
+                    this.fileTitle.textContent = file.name;
+                    
+                    this.showPDFViewer();
+                    
+                    // 먼저 기본 스케일로 렌더링 (원본 크기 정보 획득)
+                    await this.renderPage();
+                    
+                    // 썸네일 생성 시작
+                    this.generateThumbnails();
+                    
+                    // 원본 크기 정보를 얻은 후에 페이지 맞춤 적용
+                    if (this.originalPageWidth && this.originalPageHeight) {
+                        this.fitMode = 'page';
+                        const page = await this.pdf.getPage(this.currentPage);
+                        await this.calculateFitToPage(page);
+                        
+                        // 페이지 맞춤 스케일로 다시 렌더링
+                        await this.renderPage();
+                    }
+                    
+                    this.updateUI();
+                    this.updateFitToggle();
+                    
+                    // PDF 로드 완료 시 썸네일 버튼 활성화
+                    this.thumbnailsBtn.disabled = false;
+                    
+                } catch (error) {
+                    alert('PDF 파일을 로드하는데 실패했습니다.');
+                    console.error(error);
+                } finally {
+                    this.loading.style.display = 'none';
+                }
+            }
+
+            showFolderSelectedMessage() {
+                this.uploadArea.style.display = 'none';
+                this.folderSelectedMessage.style.display = 'flex';
+                this.toolbar.style.display = 'none';
+                this.pdfViewer.style.display = 'none';
+            }
+
+            showPDFViewer() {
+                this.uploadArea.style.display = 'none';
+                this.folderSelectedMessage.style.display = 'none';
+                this.toolbar.style.display = 'flex';
+                this.pdfViewer.style.display = 'flex';
+                
+                // PDF 뷰어가 열릴 때 썸네일 버튼 활성화 확인
+                if (this.pdf) {
+                    this.thumbnailsBtn.disabled = false;
+                }
+            }
+
+            // 햄버거 버튼 - 아이콘 패널 토글
+            toggleIconPanel() {
+                // 캡쳐 모드가 활성화되어 있으면 종료
+                if (this.isCaptureMode) {
+                    this.exitCaptureMode();
+                }
+                
+                this.isIconPanelOpen = !this.isIconPanelOpen;
+                
+                if (this.isIconPanelOpen) {
+                    this.sidebar.classList.add('icon-panel-open');
+                    // 마지막에 열려있던 탭으로 복원
+                    setTimeout(() => {
+                        if (!this.isThumbnailsOpen && !this.isFolderOpen) {
+                            if (this.lastOpenedSidebarType === 'thumbnails') {
+                                this.openThumbnails();
+                                // 썸네일인 경우 현재 페이지 선택 상태 업데이트
+                                setTimeout(() => {
+                                    this.updateThumbnailSelection();
+                                }, 100);
+                            } else {
+                                this.openFolder();
+                            }
+                        }
+                    }, 150); // 아이콘 패널 애니메이션 후 탭 복원
+                } else {
+                    this.sidebar.classList.remove('icon-panel-open');
+                    // 현재 열려있는 탭을 기억
+                    if (this.isThumbnailsOpen) {
+                        this.lastOpenedSidebarType = 'thumbnails';
+                    } else if (this.isFolderOpen) {
+                        this.lastOpenedSidebarType = 'folder';
+                    }
+                    // 아이콘 패널이 닫히면 모든 섹션도 닫기
+                    this.closeThumbnails();
+                    this.closeFolder();
+                }
+                
+                // 사이드바 변화에 따른 배율 재조정
+                setTimeout(() => {
+                    this.adjustScaleForSidebarChange();
+                }, 350); // 애니메이션 완료 후 조정
+            }
+
+            // 썸네일 토글
+            toggleThumbnails() {
+                // 썸네일 버튼이 비활성화되어 있으면 동작하지 않음
+                if (this.thumbnailsBtn.disabled) {
+                    return;
+                }
+                
+                if (!this.isIconPanelOpen) {
+                    this.toggleIconPanel(); // 아이콘 패널이 닫혀있으면 먼저 열기
+                    return;
+                }
+                
+                // 썸네일이 이미 열려있으면 아무것도 하지 않음
+                if (this.isThumbnailsOpen) {
+                    return;
+                }
+                
+                // 다른 섹션이 열려있으면 닫기
+                if (this.isFolderOpen) {
+                    this.closeFolder();
+                }
+                
+                // 썸네일 열기
+                this.openThumbnails();
+                // 썸네일을 열 때 현재 페이지 선택 상태 업데이트
+                setTimeout(() => {
+                    this.updateThumbnailSelection();
+                }, 100); // 애니메이션 완료 후 업데이트
+                
+                // 썸네일 토글에 따른 배율 재조정
+                setTimeout(() => {
+                    this.adjustScaleForSidebarChange();
+                }, 350); // 애니메이션 완료 후 조정
+            }
+
+            // 폴더 탐색기 토글
+            toggleFolder() {
+                if (!this.isIconPanelOpen) {
+                    this.toggleIconPanel(); // 아이콘 패널이 닫혀있으면 먼저 열기
+                    return;
+                }
+                
+                // 폴더가 이미 열려있으면 아무것도 하지 않음
+                if (this.isFolderOpen) {
+                    return;
+                }
+                
+                // 다른 섹션이 열려있으면 닫기
+                if (this.isThumbnailsOpen) {
+                    this.closeThumbnails();
+                }
+                
+                // 폴더 탐색기 열기
+                this.openFolder();
+                
+                // 폴더 토글에 따른 배율 재조정
+                setTimeout(() => {
+                    this.adjustScaleForSidebarChange();
+                }, 350); // 애니메이션 완료 후 조정
+            }
+
+            // 폴더 탐색기 열기
+            openFolder() {
+                this.isFolderOpen = true;
+                this.currentSidebarType = 'folder';
+                this.sidebar.classList.add('folder-open');
+                this.folderBtn.classList.add('active');
+                this.lastOpenedSidebarType = 'folder'; // 마지막 열린 탭 업데이트
+            }
+
+            // 폴더 탐색기 닫기
+            closeFolder() {
+                this.isFolderOpen = false;
+                this.sidebar.classList.remove('folder-open');
+                this.folderBtn.classList.remove('active');
+            }
+
+            // 폴더 선택 다이얼로그 열기 메서드 추가
+            openFolderDialog(event) {
+                console.log('폴더 선택 다이얼로그 열기');
+                // 이벤트 전파 방지
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                this.folderInput.click();
+            }
+
+            // 폴더 선택 처리
+            async handleFolderSelect(event) {
+                const files = Array.from(event.target.files);
+                if (files.length === 0) return;
+
+                console.log('선택된 파일들:', files.length);
+                
+                // PDF 파일만 필터링
+                const pdfFiles = files.filter(file => file.type === 'application/pdf');
+                console.log('PDF 파일들:', pdfFiles.length);
+
+                if (pdfFiles.length === 0) {
+                    this.showToastMessage('❌ 선택한 폴더에 PDF 파일이 없습니다');
+                    return;
+                }
+
+                // 폴더명 추출 (첫 번째 파일의 경로에서)
+                const firstFile = pdfFiles[0];
+                const pathParts = firstFile.webkitRelativePath.split('/');
+                const folderName = pathParts[0]; // 첫 번째 부분이 폴더명
+                this.currentFolderName = folderName;
+
+                // 폴더 제목 업데이트
+                this.updateFolderTitle(folderName);
+
+                // 폴더 구조 생성
+                this.buildFolderStructure(pdfFiles);
+                
+                // 폴더 선택 완료 메시지 표시
+                this.showFolderSelectedMessage();
+                
+                // 아이콘 패널이 안 열려있으면 열기
+                if (!this.isIconPanelOpen) {
+                    this.toggleIconPanel();
+                    // 애니메이션 시간을 기다린 후 폴더 탭 열기
+                    setTimeout(() => {
+                        this.openFolder();
+                        this.renderFolderTree();
+                    }, 200);
+                } else {
+                    // 이미 열려있으면 바로 폴더 탭 열기
+                    this.openFolder();
+                    this.renderFolderTree();
+                }
+                
+                this.showToastMessage(`✅ ${pdfFiles.length}개의 PDF 파일을 찾았습니다`);
+            }
+
+            // 폴더 제목 업데이트 메서드 추가
+            updateFolderTitle(folderName) {
+                if (folderName) {
+                    this.folderTitle.textContent = `📁 ${folderName}`;
+                } else {
+                    this.folderTitle.textContent = '📁 폴더 탐색기';
+                }
+            }
+
+            // 폴더 구조 생성 - 중복 제거 로직 개선
+            buildFolderStructure(files) {
+                const structure = {
+                    name: this.currentFolderName || '선택된 폴더',
+                    type: 'folder',
+                    children: {},
+                    files: [],
+                    expanded: true
+                };
+
+                console.log('폴더 구조 생성 시작, 파일 개수:', files.length);
+
+                files.forEach(file => {
+                    const pathParts = file.webkitRelativePath.split('/');
+                    console.log('파일 경로:', file.webkitRelativePath, '-> 파트들:', pathParts);
+                    
+                    let current = structure;
+
+                    // 첫 번째 폴더(루트)는 이미 structure에 설정되었으므로 1부터 시작
+                    for (let i = 1; i < pathParts.length - 1; i++) {
+                        const folderName = pathParts[i];
+                        
+                        // 같은 이름의 폴더 중복 방지 - 루트 폴더와 같은 이름이면 건너뛰기
+                        if (folderName === pathParts[0] && i === 1) {
+                            console.log(`  중복 루트 폴더 "${folderName}" 건너뛰기`);
+                            continue;
+                        }
+                        
+                        console.log(`  레벨 ${i}: 폴더 "${folderName}" 처리 중`);
+                        
+                        if (!current.children[folderName]) {
+                            current.children[folderName] = {
+                                name: folderName,
+                                type: 'folder',
+                                children: {},
+                                files: [],
+                                expanded: false
+                            };
+                            console.log(`    새 폴더 생성: "${folderName}"`);
+                        }
+                        current = current.children[folderName];
+                    }
+
+                    // 파일 추가 (마지막 파트가 파일명)
+                    const fileName = pathParts[pathParts.length - 1];
+                    console.log(`  파일 "${fileName}"을 현재 위치에 추가`);
+                    
+                    current.files.push({
+                        name: fileName,
+                        type: 'file',
+                        file: file,
+                        path: file.webkitRelativePath
+                    });
+                });
+
+                this.folderStructure = structure;
+                console.log('최종 폴더 구조:', structure);
+            }
+
+            // 드롭된 파일들로 폴더 구조 생성
+            buildFolderStructureFromDroppedFiles(files) {
+                const structure = {
+                    name: '드롭된 파일들',
+                    type: 'folder',
+                    children: {},
+                    files: [],
+                    expanded: true
+                };
+
+                files.forEach(file => {
+                    // 드롭된 파일들은 경로가 없으므로 루트에 직접 추가
+                    structure.files.push({
+                        name: file.name,
+                        type: 'file',
+                        file: file,
+                        path: file.name
+                    });
+                });
+
+                this.folderStructure = structure;
+                this.currentFolderName = '드롭된 파일들';
+                this.updateFolderTitle(this.currentFolderName);
+            }
+
+            // 폴더 트리 렌더링 - 루트 폴더는 표시하지 않고 내용만 렌더링
+            renderFolderTree() {
+                if (!this.folderStructure) {
+                    this.folderTree.innerHTML = '<div class="folder-empty" id="folderEmptyArea">📁 폴더를 선택하거나 PDF 파일들을 여기로 드래그하세요</div>';
+                    
+                    // 빈 영역 클릭 이벤트 추가
+                    const emptyArea = document.getElementById('folderEmptyArea');
+                    if (emptyArea) {
+                        emptyArea.addEventListener('click', (e) => {
+                            this.openFolderDialog(e);
+                        });
+                        
+                        // 드래그 앤 드롭 이벤트 추가
+                        emptyArea.addEventListener('dragover', (e) => {
+                            e.preventDefault();
+                            emptyArea.classList.add('dragover');
+                        });
+                        
+                        emptyArea.addEventListener('dragleave', () => {
+                            emptyArea.classList.remove('dragover');
+                        });
+                        
+                        emptyArea.addEventListener('drop', (e) => {
+                            e.preventDefault();
+                            emptyArea.classList.remove('dragover');
+                            
+                            const files = Array.from(e.dataTransfer.files);
+                            const pdfFiles = files.filter(file => file.type === 'application/pdf');
+                            
+                            if (pdfFiles.length > 0) {
+                                // 가상의 폴더 구조 생성 (드롭된 파일들로)
+                                this.buildFolderStructureFromDroppedFiles(pdfFiles);
+                                this.renderFolderTree();
+                                this.showToastMessage(`✅ ${pdfFiles.length}개의 PDF 파일을 추가했습니다`);
+                            } else {
+                                this.showToastMessage('❌ PDF 파일만 드롭할 수 있습니다');
+                            }
+                        });
+                    }
+                    return;
+                }
+
+                this.folderTree.innerHTML = '';
+                
+                // 루트 폴더의 내용만 렌더링 (루트 폴더 자체는 표시하지 않음)
+                this.renderFolderContents(this.folderStructure, this.folderTree, -1); // depth를 -1로 시작해서 실제 내용이 0부터 시작되도록
+            }
+
+            // 폴더 내용 렌더링 (루트 폴더 자체는 렌더링하지 않고 내용만)
+            renderFolderContents(node, container, depth) {
+                // 하위 폴더들 먼저 렌더링
+                Object.values(node.children)
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .forEach(child => {
+                        this.renderFolderNode(child, container, depth + 1);
+                    });
+
+                // 그 다음 파일들 렌더링
+                node.files
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .forEach(fileNode => {
+                        this.renderFileNode(fileNode, container, depth + 1);
+                    });
+            }
+
+            // 폴더 노드 렌더링
+            renderFolderNode(node, container, depth) {
+                if (node.type === 'folder') {
+                    // 폴더 아이템 생성
+                    const folderItem = document.createElement('div');
+                    folderItem.className = 'folder-item';
+                    folderItem.style.paddingLeft = (depth * 16 + 4) + 'px';
+
+                    const hasChildren = Object.keys(node.children).length > 0 || node.files.length > 0;
+                    
+                    folderItem.innerHTML = `
+                        <span class="folder-icon ${hasChildren ? 'expandable' : ''}" data-action="toggle">
+                            ${hasChildren ? (node.expanded ? '📂' : '📁') : '📁'}
+                        </span>
+                        <span class="folder-name">${node.name}</span>
+                    `;
+
+                    // 폴더 전체 라인에 클릭 이벤트 (폴더 열기/닫기)
+                    folderItem.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        if (hasChildren) {
+                            node.expanded = !node.expanded;
+                            this.renderFolderTree();
+                        }
+                    });
+
+                    container.appendChild(folderItem);
+
+                    // 확장된 폴더의 자식들 렌더링
+                    if (node.expanded) {
+                        // 하위 폴더들 먼저
+                        Object.values(node.children)
+                            .sort((a, b) => a.name.localeCompare(b.name))
+                            .forEach(child => {
+                                this.renderFolderNode(child, container, depth + 1);
+                            });
+
+                        // 그 다음 파일들
+                        node.files
+                            .sort((a, b) => a.name.localeCompare(b.name))
+                            .forEach(fileNode => {
+                                this.renderFileNode(fileNode, container, depth + 1);
+                            });
+                    }
+                }
+            }
+
+            // 파일 노드 렌더링
+            renderFileNode(fileNode, container, depth) {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'folder-item pdf-file';
+                fileItem.style.paddingLeft = (depth * 16 + 4) + 'px';
+                fileItem.dataset.filePath = fileNode.path;
+
+                fileItem.innerHTML = `
+                    <span class="folder-icon">📄</span>
+                    <span class="folder-name" title="${fileNode.name}">${fileNode.name}</span>
+                `;
+
+                // 파일 전체 라인에 클릭 이벤트
+                fileItem.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    this.selectFileInTree(fileItem);
+                    this.handleFile(fileNode.file);
+                });
+
+                container.appendChild(fileItem);
+            }
+
+            // 트리에서 파일 선택
+            selectFileInTree(fileItem) {
+                // 기존 선택 해제
+                const previousSelected = this.folderTree.querySelector('.folder-item.selected');
+                if (previousSelected) {
+                    previousSelected.classList.remove('selected');
+                }
+
+                // 새로운 파일 선택
+                fileItem.classList.add('selected');
+                this.selectedFile = fileItem.dataset.filePath;
+            }
+
+            // 썸네일 열기
+            openThumbnails() {
+                this.isThumbnailsOpen = true;
+                this.sidebar.classList.add('thumbnails-open');
+                this.thumbnailsBtn.classList.add('active');
+                this.lastOpenedSidebarType = 'thumbnails'; // 마지막 열린 탭 업데이트
+            }
+
+            // 썸네일 닫기
+            closeThumbnails() {
+                this.isThumbnailsOpen = false;
+                this.sidebar.classList.remove('thumbnails-open');
+                this.thumbnailsBtn.classList.remove('active');
+            }
+
+            // 사이드바 변화에 따른 배율 재조정
+            async adjustScaleForSidebarChange() {
+                if (!this.pdf || this.fitMode === 'none') return;
+                
+                this.startZooming();
+                
+                try {
+                    const page = await this.pdf.getPage(this.currentPage);
+                    let newScale;
+                    
+                    if (this.fitMode === 'width') {
+                        newScale = await this.calculateFitToWidthScale(page);
+                    } else if (this.fitMode === 'page') {
+                        newScale = await this.calculateFitToPageScale(page);
+                    } else {
+                        return;
+                    }
+                    
+                    // 스케일 업데이트 (부드러운 전환 없이)
+                    this.scale = newScale;
+                    this.updateUI();
+                    this.updateImageSize();
+                    this.updateScrollAreaForZoom();
+                    this.scheduleTextLayerUpdate();
+                    
+                } catch (error) {
+                    console.error('배율 재조정 실패:', error);
+                } finally {
+                    this.isZooming = false;
+                }
+            }
+
+            // ... (이하 기존 메서드들 동일하게 유지)
+            async renderPage(renderTextLayer = true) {
+                if (!this.pdf) return;
+
+                // 이전 렌더링 작업 취소
+                await this.cancelCurrentRender();
+
+                const page = await this.pdf.getPage(this.currentPage);
+                
+                // 기존 텍스트 레이어 클리어
+                this.clearTextLayer();
+                
+                // 맞춤 모드에 따른 스케일 계산
+                if (this.fitMode === 'width') {
+                    await this.calculateFitToWidth(page);
+                } else if (this.fitMode === 'page') {
+                    await this.calculateFitToPage(page);
+                }
+                
+                const displayViewport = page.getViewport({scale: this.scale});
+                
+                // 이미지로 렌더링
+                await this.renderAsImage(page, displayViewport);
+                
+                // 스크롤 영역 업데이트
+                this.updateScrollArea(displayViewport);
+                
+                // 텍스트 레이어 렌더링
+                if (renderTextLayer) {
+                    this.scheduleTextLayerRender(page, displayViewport);
+                }
+            }
+
+            async renderAsImage(page, displayViewport) {
+                try {
+                    // 원본 페이지 크기 저장 (scale 1.0 기준)
+                    const originalViewport = page.getViewport({scale: 1.0});
+                    this.originalPageWidth = originalViewport.width;
+                    this.originalPageHeight = originalViewport.height;
+                    
+                    // 고품질 렌더링을 위한 캔버스 설정
+                    const highQualityScale = this.scale * this.renderScale;
+                    const highQualityViewport = page.getViewport({scale: highQualityScale});
+                    
+                    // 숨겨진 캔버스에 고품질로 렌더링
+                    this.canvas.width = highQualityViewport.width;
+                    this.canvas.height = highQualityViewport.height;
+
+                    // Canvas 클리어
+                    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                    const renderContext = {
+                        canvasContext: this.ctx,
+                        viewport: highQualityViewport
+                    };
+                    
+                    // 새로운 렌더링 작업 시작
+                    this.currentRenderTask = page.render(renderContext);
+                    
+                    // 렌더링 완료 대기
+                    await this.currentRenderTask.promise;
+                    
+                    // Canvas를 이미지로 변환
+                    const imageDataUrl = this.canvas.toDataURL('image/png', 1.0);
+                    
+                    // 이미지 요소에 설정
+                    this.pdfImage.src = imageDataUrl;
+                    this.pdfImage.style.width = displayViewport.width + 'px';
+                    this.pdfImage.style.height = displayViewport.height + 'px';
+                    
+                    // 텍스트 레이어 크기 설정
+                    this.textLayer.style.width = displayViewport.width + 'px';
+                    this.textLayer.style.height = displayViewport.height + 'px';
+                    
+                    // 렌더링 완료 후 작업 참조 해제
+                    this.currentRenderTask = null;
+                    
+                } catch (error) {
+                    // 취소된 렌더링은 오류가 아님
+                    if (error.name === 'RenderingCancelledException') {
+                        console.log('렌더링이 취소되었습니다.');
+                    } else {
+                        console.error('렌더링 실패:', error);
+                    }
+                    this.currentRenderTask = null;
+                }
+            }
+
+            updateScrollArea(viewport) {
+                // PDF 래퍼 크기를 PDF 크기 + 여백으로 설정
+                const pdfWidth = this.originalPageWidth * this.scale;
+                const pdfHeight = this.originalPageHeight * this.scale;
+                const margin = 40; // 상하좌우 20px씩 여백
+                
+                // 컨테이너보다 작으면 컨테이너 크기에 맞춤 (중앙 정렬)
+                const containerWidth = this.pdfContainer.clientWidth;
+                const containerHeight = this.pdfContainer.clientHeight;
+                
+                const wrapperWidth = Math.max(pdfWidth + margin, containerWidth);
+                const wrapperHeight = Math.max(pdfHeight + margin, containerHeight);
+                
+                this.pdfWrapper.style.width = wrapperWidth + 'px';
+                this.pdfWrapper.style.height = wrapperHeight + 'px';
+                
+                // PDF가 컨테이너보다 작으면 중앙 정렬
+                if (pdfWidth < containerWidth) {
+                    this.pdfWrapper.style.justifyContent = 'center';
+                } else {
+                    this.pdfWrapper.style.justifyContent = 'flex-start';
+                }
+                
+                if (pdfHeight < containerHeight) {
+                    this.pdfWrapper.style.alignItems = 'center';
+                } else {
+                    this.pdfWrapper.style.alignItems = 'flex-start';
+                }
+            }
+
+            async cancelCurrentRender() {
+                // 현재 진행 중인 렌더링 작업이 있으면 취소
+                if (this.currentRenderTask) {
+                    try {
+                        this.currentRenderTask.cancel();
+                    } catch (error) {
+                        console.log('렌더링 취소 시도:', error.message);
+                    }
+                    this.currentRenderTask = null;
+                }
+            }
+
+            scheduleTextLayerRender(page, viewport) {
+                // 기존 텍스트 레이어 렌더링 타이머 취소
+                if (this.textLayerTimeout) {
+                    clearTimeout(this.textLayerTimeout);
+                }
+                
+                // 100ms 후에 텍스트 레이어 렌더링
+                this.textLayerTimeout = setTimeout(async () => {
+                    if (!this.isZooming) {
+                        await this.renderTextLayer(page, viewport);
+                    }
+                }, 100);
+            }
+
+            async clearTextLayer() {
+                // 모든 타이머 취소
+                if (this.textLayerTimeout) {
+                    clearTimeout(this.textLayerTimeout);
+                    this.textLayerTimeout = null;
+                }
+                
+                // 기존 선택 해제
+                if (window.getSelection) {
+                    const selection = window.getSelection();
+                    selection.removeAllRanges();
+                }
+                
+                // 텍스트 레이어 완전히 클리어
+                const textLayer = this.textLayer;
+                
+                while (textLayer.hasChildNodes()) {
+                    textLayer.removeChild(textLayer.firstChild);
+                }
+                
+                textLayer.innerHTML = '';
+                textLayer.textContent = '';
+                textLayer.offsetHeight; // 강제 리플로우
+            }
+
+            async renderTextLayer(page, viewport) {
+                try {
+                    // 텍스트 콘텐츠 가져오기
+                    const textContent = await page.getTextContent();
+                    
+                    if (!textContent || !textContent.items || textContent.items.length === 0) {
+                        return;
+                    }
+                    
+                    // 텍스트 아이템들을 Y 위치별로 그룹화 (라인별로)
+                    const lines = [];
+                    
+                    textContent.items.forEach((textItem) => {
+                        if (!textItem.str || textItem.str.trim() === '') return;
+                        
+                        const transform = textItem.transform;
+                        if (!transform || transform.length < 6) return;
+                        
+                        const y = transform[5];
+                        const fontSize = textItem.height || Math.sqrt(transform[2] * transform[2] + transform[3] * transform[3]);
+                        
+                        // 같은 라인으로 간주할 Y 위치 범위
+                        const tolerance = fontSize * 0.5;
+                        
+                        let foundLine = lines.find(line => Math.abs(line.y - y) < tolerance);
+                        
+                        if (!foundLine) {
+                            foundLine = {
+                                y: y,
+                                fontSize: fontSize,
+                                items: []
+                            };
+                            lines.push(foundLine);
+                        }
+                        
+                        foundLine.items.push({
+                            ...textItem,
+                            x: transform[4],
+                            y: y,
+                            fontSize: fontSize
+                        });
+                    });
+                    
+                    // 각 라인별로 처리
+                    lines.forEach(line => {
+                        // X 위치순으로 정렬
+                        line.items.sort((a, b) => a.x - b.x);
+                        
+                        // 연속된 텍스트들을 그룹화
+                        const groups = [];
+                        let currentGroup = null;
+                        
+                        line.items.forEach((item, index) => {
+                            if (!currentGroup) {
+                                currentGroup = {
+                                    x: item.x,
+                                    y: item.y,
+                                    fontSize: item.fontSize,
+                                    text: item.str,
+                                    width: item.width || item.str.length * item.fontSize * 0.6,
+                                    transform: item.transform
+                                };
+                                groups.push(currentGroup);
+                            } else {
+                                const currentEnd = currentGroup.x + currentGroup.width;
+                                const itemStart = item.x;
+                                const gap = itemStart - currentEnd;
+                                
+                                // 간격이 작으면 현재 그룹에 추가, 크면 새 그룹 생성
+                                if (gap < item.fontSize * 0.8) {
+                                    // 공백 추가 여부 결정
+                                    if (gap > item.fontSize * 0.2) {
+                                        currentGroup.text += ' ';
+                                    }
+                                    currentGroup.text += item.str;
+                                    currentGroup.width = itemStart + (item.width || item.str.length * item.fontSize * 0.6) - currentGroup.x;
+                                } else {
+                                    // 새 그룹 시작
+                                    currentGroup = {
+                                        x: item.x,
+                                        y: item.y,
+                                        fontSize: item.fontSize,
+                                        text: item.str,
+                                        width: item.width || item.str.length * item.fontSize * 0.6,
+                                        transform: item.transform
+                                    };
+                                    groups.push(currentGroup);
+                                }
+                            }
+                        });
+                        
+                        // 각 그룹별로 span 생성
+                        groups.forEach(group => {
+                            if (group.text.trim() === '') return;
+                            
+                            const span = document.createElement('span');
+                            
+                            // PDF 좌표를 화면 좌표로 변환
+                            const screenX = group.x * viewport.scale;
+                            const screenY = (viewport.height / viewport.scale - group.y - group.fontSize) * viewport.scale;
+                            
+                            // 스타일 적용
+                            span.style.position = 'absolute';
+                            span.style.left = screenX + 'px';
+                            span.style.top = screenY + 'px';
+                            span.style.fontSize = (group.fontSize * viewport.scale) + 'px';
+                            span.style.fontFamily = 'serif';
+                            span.style.color = 'transparent';
+                            span.style.cursor = 'text';
+                            span.style.userSelect = 'text';
+                            span.style.webkitUserSelect = 'text';
+                            span.style.mozUserSelect = 'text';
+                            span.style.pointerEvents = 'auto';
+                            span.style.whiteSpace = 'pre';
+                            span.style.transformOrigin = '0 0';
+                            
+                            // 텍스트 내용 설정
+                            span.textContent = group.text;
+                            
+                            // 회전 처리
+                            const transform = group.transform;
+                            if (Math.abs(transform[1]) > 0.001 || Math.abs(transform[2]) > 0.001) {
+                                const angle = Math.atan2(transform[1], transform[0]) * (180 / Math.PI);
+                                span.style.transform = `rotate(${angle}deg)`;
+                            }
+                            
+                            this.textLayer.appendChild(span);
+                        });
+                    });
+                    
+                } catch (error) {
+                    console.error('텍스트 레이어 렌더링 실패:', error);
+                }
+            }
+
+            async calculateFitToWidth(page) {
+                const containerWidth = this.pdfContainer.clientWidth;
+                // 원본 크기 사용
+                this.scale = (containerWidth - 40) / this.originalPageWidth; // 여백 고려
+            }
+
+            async calculateFitToPage(page) {
+                const containerWidth = this.pdfContainer.clientWidth;
+                const containerHeight = this.pdfContainer.clientHeight;
+                
+                const scaleX = (containerWidth - 40) / this.originalPageWidth; // 여백 고려
+                const scaleY = (containerHeight - 40) / this.originalPageHeight; // 여백 고려
+                this.scale = Math.min(scaleX, scaleY);
+            }
+
+            async toggleFit() {
+                this.startZooming();
+                
+                // 현재 모드에 따라 다음 모드로 전환
+                const newFitMode = this.fitMode === 'page' ? 'width' : 'page';
+                
+                // 맞춤 모드를 위한 스케일 계산
+                if (!this.pdf) return;
+                const page = await this.pdf.getPage(this.currentPage);
+                
+                let newScale;
+                if (newFitMode === 'width') {
+                    newScale = await this.calculateFitToWidthScale(page);
+                } else {
+                    newScale = await this.calculateFitToPageScale(page);
+                }
+                
+                await this.performZoom(newScale, newFitMode);
+            }
+
+            async calculateFitToWidthScale(page) {
+                const containerWidth = this.pdfContainer.clientWidth;
+                return (containerWidth - 40) / this.originalPageWidth;
+            }
+
+            async calculateFitToPageScale(page) {
+                const containerWidth = this.pdfContainer.clientWidth;
+                const containerHeight = this.pdfContainer.clientHeight;
+                
+                const scaleX = (containerWidth - 40) / this.originalPageWidth;
+                const scaleY = (containerHeight - 40) / this.originalPageHeight;
+                return Math.min(scaleX, scaleY);
+            }
+
+            updateFitToggle() {
+                // 현재 fitMode에 따라 버튼 아이콘과 상태 변경
+                if (this.fitMode === 'page') {
+                    this.fitToggleBtn.textContent = '↔️'; // 페이지 맞춤 상태, 클릭하면 너비 맞춤으로
+                    this.fitToggleBtn.classList.add('active');
+                    this.fitToggleBtn.title = '너비에 맞춤으로 전환';
+                } else if (this.fitMode === 'width') {
+                    this.fitToggleBtn.textContent = '↕️'; // 너비 맞춤 상태, 클릭하면 페이지 맞춤으로
+                    this.fitToggleBtn.classList.add('active');
+                    this.fitToggleBtn.title = '페이지에 맞춤으로 전환';
+                } else {
+                    this.fitToggleBtn.textContent = '↕️'; // 기본 상태, 클릭하면 페이지 맞춤으로
+                    this.fitToggleBtn.classList.remove('active');
+                    this.fitToggleBtn.title = '페이지에 맞춤';
+                }
+            }
+
+            async setZoomFromSelect() {
+                this.startZooming();
+                
+                const zoomPercent = parseInt(this.zoomSelect.value);
+                const newScale = zoomPercent / 100;
+                
+                await this.performZoom(newScale, 'none');
+            }
+
+            async zoomPage(factor) {
+                // 현재 스케일에서 새로운 스케일 계산
+                let newScale = this.scale * factor;
+                const minScale = 0.25;
+                const maxScale = 5.0;
+                
+                // 제한 범위를 벗어나면 동작하지 않음
+                if (newScale < minScale || newScale > maxScale) {
+                    return;
+                }
+                
+                this.startZooming();
+                
+                newScale = Math.max(minScale, Math.min(maxScale, newScale));
+                
+                await this.performZoom(newScale, 'none');
+            }
+
+            startZooming() {
+                this.isZooming = true;
+                this.clearTextLayer();
+            }
+
+            async performZoom(newScale, newFitMode) {
+                // 현재 컨테이너 중앙 좌표 계산
+                const container = this.pdfContainer;
+                const containerCenterX = container.clientWidth / 2;
+                const containerCenterY = container.clientHeight / 2;
+                
+                // 현재 스크롤 위치를 기준으로 중앙점의 문서 좌표 계산
+                const currentCenterX = container.scrollLeft + containerCenterX;
+                const currentCenterY = container.scrollTop + containerCenterY;
+                
+                // 스케일 비율 계산
+                const scaleRatio = newScale / this.scale;
+                
+                // 내부 상태 업데이트
+                const oldScale = this.scale;
+                this.scale = newScale;
+                if (newFitMode !== undefined) this.fitMode = newFitMode;
+                this.updateFitToggle();
+                this.updateUI();
+                
+                // 이미지와 텍스트 레이어를 새로운 스케일로 즉시 업데이트
+                this.updateImageSize();
+                this.updateScrollAreaForZoom();
+                
+                // 스크롤 위치 조정 (중앙 기준 유지)
+                const newCenterX = currentCenterX * scaleRatio;
+                const newCenterY = currentCenterY * scaleRatio;
+                
+                const newScrollLeft = newCenterX - containerCenterX;
+                const newScrollTop = newCenterY - containerCenterY;
+                
+                // 스크롤 위치 설정 (경계값 체크)
+                container.scrollLeft = Math.max(0, Math.min(newScrollLeft, container.scrollWidth - container.clientWidth));
+                container.scrollTop = Math.max(0, Math.min(newScrollTop, container.scrollHeight - container.clientHeight));
+                
+                // 텍스트 레이어 스케일 업데이트 (디바운스)
+                this.scheduleTextLayerUpdate();
+                
+                // 줌 완료
+                this.isZooming = false;
+            }
+
+            updateImageSize() {
+                if (!this.pdfImage.src || !this.originalPageWidth || !this.originalPageHeight) return;
+                
+                // 원본 크기 기준으로 스케일된 크기 계산
+                const scaledWidth = this.originalPageWidth * this.scale;
+                const scaledHeight = this.originalPageHeight * this.scale;
+                
+                // 이미지 크기 업데이트 (transform 제거하고 실제 크기로)
+                this.pdfImage.style.transform = '';
+                this.pdfImage.style.transformOrigin = '';
+                this.pdfImage.style.width = scaledWidth + 'px';
+                this.pdfImage.style.height = scaledHeight + 'px';
+                
+                // 텍스트 레이어 크기 업데이트
+                this.textLayer.style.transform = '';
+                this.textLayer.style.transformOrigin = '';
+                this.textLayer.style.width = scaledWidth + 'px';
+                this.textLayer.style.height = scaledHeight + 'px';
+            }
+            
+            updateScrollAreaForZoom() {
+                if (!this.pdfImage.src || !this.originalPageWidth || !this.originalPageHeight) return;
+                
+                const scaledWidth = this.originalPageWidth * this.scale;
+                const scaledHeight = this.originalPageHeight * this.scale;
+                const margin = 40;
+                
+                const containerWidth = this.pdfContainer.clientWidth;
+                const containerHeight = this.pdfContainer.clientHeight;
+                
+                const wrapperWidth = Math.max(scaledWidth + margin, containerWidth);
+                const wrapperHeight = Math.max(scaledHeight + margin, containerHeight);
+                
+                this.pdfWrapper.style.width = wrapperWidth + 'px';
+                this.pdfWrapper.style.height = wrapperHeight + 'px';
+                
+                // 중앙 정렬 설정
+                if (scaledWidth < containerWidth) {
+                    this.pdfWrapper.style.justifyContent = 'center';
+                } else {
+                    this.pdfWrapper.style.justifyContent = 'flex-start';
+                }
+                
+                if (scaledHeight < containerHeight) {
+                    this.pdfWrapper.style.alignItems = 'center';
+                } else {
+                    this.pdfWrapper.style.alignItems = 'flex-start';
+                }
+            }
+            
+            getCurrentPageViewport() {
+                // 저장된 원본 크기 사용 (가장 정확함)
+                if (this.originalPageWidth && this.originalPageHeight) {
+                    return { 
+                        width: this.originalPageWidth, 
+                        height: this.originalPageHeight 
+                    };
+                }
+                
+                // 마지막 수단: 기본값 반환
+                return { width: 800, height: 600 };
+            }
+            
+            scheduleTextLayerUpdate() {
+                // 기존 타이머 취소
+                if (this.textLayerTimeout) {
+                    clearTimeout(this.textLayerTimeout);
+                }
+                
+                // 100ms 후에 텍스트 레이어만 업데이트
+                this.textLayerTimeout = setTimeout(async () => {
+                    if (this.pdf) {
+                        const page = await this.pdf.getPage(this.currentPage);
+                        const displayViewport = page.getViewport({scale: this.scale});
+                        await this.renderTextLayer(page, displayViewport);
+                    }
+                }, 100);
+            }
+
+            updateUI() {
+                this.pageInput.value = this.currentPage;
+                this.pageInput.max = this.totalPages;
+                this.totalPagesSpan.textContent = this.totalPages;
+                
+                // 페이지 입력 박스 크기 동적 조정
+                this.updatePageInputWidth();
+                
+                const zoomPercent = Math.round(this.scale * 100);
+                this.updateZoomSelect(zoomPercent);
+                
+                // 배율 선택 박스 크기 동적 조정
+                this.updateZoomSelectWidth();
+                
+                // 확대/축소 버튼 상태 업데이트
+                this.updateZoomButtonStates();
+                
+                this.updateFitToggle();
+            }
+            
+            updateZoomButtonStates() {
+                // 최소/최대 스케일 체크
+                const minScale = 0.25;
+                const maxScale = 5.0;
+                
+                // 축소 버튼 상태
+                if (this.scale <= minScale) {
+                    this.zoomOut.classList.add('disabled');
+                } else {
+                    this.zoomOut.classList.remove('disabled');
+                }
+                
+                // 확대 버튼 상태
+                if (this.scale >= maxScale) {
+                    this.zoomIn.classList.add('disabled');
+                } else {
+                    this.zoomIn.classList.remove('disabled');
+                }
+            }
+            
+            updatePageInputWidth() {
+                // 전체 페이지 수의 자릿수 계산
+                const digits = this.totalPages.toString().length;
+                
+                // 모바일 여부 체크
+                const isMobile = window.innerWidth <= 768;
+                
+                if (isMobile) {
+                    // 모바일: 더 작은 크기
+                    const baseWidth = 12;
+                    const charWidth = 7;
+                    const calculatedWidth = baseWidth + (digits * charWidth);
+                    const minWidth = 30;
+                    const maxWidth = 60;
+                    const finalWidth = Math.max(minWidth, Math.min(maxWidth, calculatedWidth));
+                    this.pageInput.style.width = finalWidth + 'px';
+                } else {
+                    // 데스크톱: 기본 크기
+                    const baseWidth = 16;
+                    const charWidth = 8;
+                    const calculatedWidth = baseWidth + (digits * charWidth);
+                    const minWidth = 35;
+                    const maxWidth = 80;
+                    const finalWidth = Math.max(minWidth, Math.min(maxWidth, calculatedWidth));
+                    this.pageInput.style.width = finalWidth + 'px';
+                }
+            }
+            
+            updateZoomSelectWidth() {
+                // 모바일 여부 체크
+                const isMobile = window.innerWidth <= 768;
+                
+                if (isMobile) {
+                    // 모바일: 더 작은 크기
+                    const baseWidth = 12;
+                    const textWidth = 20;
+                    const percentWidth = 7;
+                    const arrowWidth = 10;
+                    const finalWidth = baseWidth + textWidth + percentWidth + arrowWidth;
+                    this.zoomSelect.style.minWidth = finalWidth + 'px';
+                    this.zoomSelect.style.width = finalWidth + 'px';
+                } else {
+                    // 데스크톱: 기본 크기
+                    const baseWidth = 16;
+                    const textWidth = 24;
+                    const percentWidth = 8;
+                    const arrowWidth = 12;
+                    const finalWidth = baseWidth + textWidth + percentWidth + arrowWidth;
+                    this.zoomSelect.style.minWidth = finalWidth + 'px';
+                    this.zoomSelect.style.width = finalWidth + 'px';
+                }
+            }
+
+            updateZoomSelect(currentZoom) {
+                const defaultOptions = [25, 50, 75, 100, 125, 150, 200, 300, 400, 500];
+                
+                let allOptions = [...defaultOptions];
+                if (!allOptions.includes(currentZoom)) {
+                    allOptions.push(currentZoom);
+                    allOptions.sort((a, b) => a - b);
+                }
+                
+                this.zoomSelect.innerHTML = '';
+                allOptions.forEach(zoom => {
+                    const option = document.createElement('option');
+                    option.value = zoom;
+                    option.textContent = zoom + '%';
+                    if (zoom === currentZoom) {
+                        option.selected = true;
+                    }
+                    this.zoomSelect.appendChild(option);
+                });
+            }
+
+            async previousPage() {
+                if (this.currentPage > 1) {
+                    this.currentPage--;
+                    await this.renderPage();
+                    this.updateUI();
+                    this.updateThumbnailSelection();
+                    // 이전 페이지로 이동할 때는 맨 아래로 스크롤
+                    setTimeout(() => {
+                        this.scrollToBottom();
+                    }, 100);
+                }
+            }
+
+            async nextPage() {
+                if (this.currentPage < this.totalPages) {
+                    this.currentPage++;
+                    await this.renderPage();
+                    this.updateUI();
+                    this.updateThumbnailSelection();
+                    // 다음 페이지로 이동할 때는 맨 위로 스크롤
+                    this.scrollToTop();
+                }
+            }
+
+            async goToPage() {
+                const pageNum = parseInt(this.pageInput.value);
+                if (pageNum >= 1 && pageNum <= this.totalPages && pageNum !== this.currentPage) {
+                    this.currentPage = pageNum;
+                    await this.renderPage();
+                    this.updateUI();
+                    this.updateThumbnailSelection();
+                    this.scrollToTop();
+                } else {
+                    this.pageInput.value = this.currentPage;
+                }
+            }
+
+            scrollToTop() {
+                // 부드러운 스크롤로 맨 위로 이동
+                this.pdfContainer.scrollTo({
+                    top: 0,
+                    left: this.pdfContainer.scrollLeft, // 가로 스크롤은 유지
+                    behavior: 'smooth'
+                });
+            }
+
+            scrollToBottom() {
+                // 부드러운 스크롤로 맨 아래로 이동
+                this.pdfContainer.scrollTo({
+                    top: this.pdfContainer.scrollHeight,
+                    left: this.pdfContainer.scrollLeft, // 가로 스크롤은 유지
+                    behavior: 'smooth'
+                });
+            }
+
+            // 텍스트가 선택되어 있는지 확인
+            hasTextSelection() {
+                const selection = window.getSelection();
+                return selection && selection.toString().trim().length > 0;
+            }
+
+            // 선택된 텍스트를 클립보드에 복사
+            async copySelectedText() {
+                const selection = window.getSelection();
+                const selectedText = selection.toString();
+                
+                if (selectedText.trim().length > 0) {
+                    try {
+                        await navigator.clipboard.writeText(selectedText);
+                        this.showToastMessage('✅ 텍스트가 클립보드에 복사되었습니다!');
+                        return true;
+                    } catch (err) {
+                        console.error('텍스트 복사 실패:', err);
+                        return false;
+                    }
+                }
+                return false;
+            }
+
+            // 이미지를 클립보드에 복사 - 현재 표시된 이미지 사용
+            async copyImageToClipboard() {
+                if (!this.pdf) return false;
+
+                try {
+                    // 현재 페이지 가져오기
+                    const page = await this.pdf.getPage(this.currentPage);
+                    
+                    // 고정된 고품질 배율로 렌더링
+                    const fixedScale = this.renderScale; // 3.0 사용
+                    const viewport = page.getViewport({scale: fixedScale});
+                    
+                    // 임시 Canvas 생성 (클립보드 복사용)
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    
+                    tempCanvas.width = viewport.width;
+                    tempCanvas.height = viewport.height;
+                    
+                    // 임시 캔버스에 렌더링
+                    const renderContext = {
+                        canvasContext: tempCtx,
+                        viewport: viewport
+                    };
+                    
+                    // 별도 렌더링 작업으로 실행
+                    const tempRenderTask = page.render(renderContext);
+                    await tempRenderTask.promise;
+                    
+                    // Canvas를 클립보드에 복사
+                    tempCanvas.toBlob(async (blob) => {
+                        const item = new ClipboardItem({'image/png': blob});
+                        await navigator.clipboard.write([item]);
+                        this.showToastMessage('✅ 이미지가 클립보드에 복사되었습니다!');
+                    }, 'image/png', 1.0);
+                    
+                    return true;
+                } catch (err) {
+                    console.error('이미지 복사 실패:', err);
+                    this.showToastMessage('❌ 이미지 복사에 실패했습니다.');
+                    return false;
+                }
+            }
+
+            // 스마트 복사 - 텍스트 선택되어 있으면 텍스트, 아니면 이미지
+            async smartCopy() {
+                if (this.hasTextSelection()) {
+                    return await this.copySelectedText();
+                } else {
+                    return await this.copyImageToClipboard();
+                }
+            }
+
+            // PDF 내 모든 텍스트 선택
+            selectAllPDFText() {
+                const textSpans = this.textLayer.querySelectorAll('span');
+                if (textSpans.length === 0) return;
+
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                
+                const range = document.createRange();
+                range.setStartBefore(textSpans[0]);
+                range.setEndAfter(textSpans[textSpans.length - 1]);
+                
+                selection.addRange(range);
+                this.showToastMessage('📄 PDF 텍스트 전체 선택됨');
+            }
+
+            showToastMessage(message) {
+                // 새로운 토스트 요소 생성
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.textContent = message;
+                
+                // 컨테이너에 추가
+                this.toastContainer.appendChild(toast);
+                
+                // 즉시 표시 (애니메이션 트리거를 위해 약간의 딜레이)
+                setTimeout(() => {
+                    toast.classList.add('show');
+                }, 10);
+                
+                // 3초 후에 숨기기 시작
+                setTimeout(() => {
+                    toast.classList.add('hide');
+                    toast.classList.remove('show');
+                    
+                    // 애니메이션 완료 후 요소 제거
+                    setTimeout(() => {
+                        if (toast.parentNode) {
+                            this.toastContainer.removeChild(toast);
+                        }
+                    }, 300);
+                }, 3000);
+            }
+            
+            // 캡쳐 모드 토글
+            toggleCaptureMode() {
+                this.isCaptureMode = !this.isCaptureMode;
+                
+                if (this.isCaptureMode) {
+                    // 캡쳐 모드 활성화 (사이드바는 그대로 유지)
+                    this.captureBtn.classList.add('capture-mode');
+                    this.captureBtn.title = '캡쳐 모드 종료 (ESC)';
+                    this.captureOverlay.classList.add('active');
+                    this.captureGuide.classList.add('show');
+                    
+                    // 텍스트 선택 비활성화
+                    this.textLayer.style.pointerEvents = 'none';
+                    
+                    this.showToastMessage('✂️ 캡쳐 모드 활성화! 드래그하여 영역을 선택하세요');
+                } else {
+                    // 캡쳐 모드 비활성화
+                    this.exitCaptureMode();
+                }
+            }
+            
+            exitCaptureMode() {
+                this.isCaptureMode = false;
+                this.isSelecting = false;
+                
+                // UI 복원
+                this.captureBtn.classList.remove('capture-mode');
+                this.captureBtn.title = '영역 캡쳐 (Ctrl+Shift+X)';
+                this.captureOverlay.classList.remove('active');
+                this.captureGuide.classList.remove('show');
+                this.selectionArea.style.display = 'none';
+                
+                // 텍스트 선택 복원
+                this.textLayer.style.pointerEvents = 'auto';
+            }
+            
+            startSelection(e) {
+                if (!this.isCaptureMode) return;
+                
+                e.preventDefault();
+                this.isSelecting = true;
+                
+                // 캡쳐 오버레이를 기준으로 정확한 좌표 계산
+                const overlayRect = this.captureOverlay.getBoundingClientRect();
+                this.selectionStart.x = e.clientX - overlayRect.left;
+                this.selectionStart.y = e.clientY - overlayRect.top;
+                this.selectionEnd.x = this.selectionStart.x;
+                this.selectionEnd.y = this.selectionStart.y;
+                
+                this.captureGuide.classList.remove('show');
+                this.selectionArea.style.display = 'block';
+                this.updateSelectionArea();
+            }
+            
+            updateSelection(e) {
+                if (!this.isCaptureMode || !this.isSelecting) return;
+                
+                e.preventDefault();
+                // 캡쳐 오버레이를 기준으로 정확한 좌표 계산
+                const overlayRect = this.captureOverlay.getBoundingClientRect();
+                this.selectionEnd.x = e.clientX - overlayRect.left;
+                this.selectionEnd.y = e.clientY - overlayRect.top;
+                
+                this.updateSelectionArea();
+            }
+            
+            updateSelectionArea() {
+                const left = Math.min(this.selectionStart.x, this.selectionEnd.x);
+                const top = Math.min(this.selectionStart.y, this.selectionEnd.y);
+                const width = Math.abs(this.selectionEnd.x - this.selectionStart.x);
+                const height = Math.abs(this.selectionEnd.y - this.selectionStart.y);
+                
+                this.selectionArea.style.left = left + 'px';
+                this.selectionArea.style.top = top + 'px';
+                this.selectionArea.style.width = width + 'px';
+                this.selectionArea.style.height = height + 'px';
+            }
+            
+            async endSelection(e) {
+                if (!this.isCaptureMode || !this.isSelecting) return;
+                
+                e.preventDefault();
+                this.isSelecting = false;
+                
+                const width = Math.abs(this.selectionEnd.x - this.selectionStart.x);
+                const height = Math.abs(this.selectionEnd.y - this.selectionStart.y);
+                
+                // 최소 크기 체크 (10x10 픽셀)
+                if (width < 10 || height < 10) {
+                    this.showToastMessage('❌ 선택 영역이 너무 작습니다');
+                    this.selectionArea.style.display = 'none';
+                    this.captureGuide.classList.add('show');
+                    return;
+                }
+                
+                // 선택 영역 캡쳐
+                await this.captureSelectedArea();
+                this.exitCaptureMode();
+            }
+            
+            cancelSelection(e) {
+                if (!this.isCaptureMode) return;
+                
+                this.isSelecting = false;
+                this.selectionArea.style.display = 'none';
+                this.captureGuide.classList.add('show');
+            }
+            
+            async captureSelectedArea() {
+                try {
+                    if (!this.pdf) return;
+                    
+                    // 선택 영역 좌표 (오버레이 기준)
+                    const selectLeft = Math.min(this.selectionStart.x, this.selectionEnd.x);
+                    const selectTop = Math.min(this.selectionStart.y, this.selectionEnd.y);
+                    const selectWidth = Math.abs(this.selectionEnd.x - this.selectionStart.x);
+                    const selectHeight = Math.abs(this.selectionEnd.y - this.selectionStart.y);
+                    
+                    // 실제 DOM 요소들의 위치 가져오기
+                    const overlayRect = this.captureOverlay.getBoundingClientRect();
+                    const imageRect = this.pdfImage.getBoundingClientRect();
+                    
+                    // 오버레이에서 이미지로의 좌표 변환
+                    const imageOffsetX = imageRect.left - overlayRect.left;
+                    const imageOffsetY = imageRect.top - overlayRect.top;
+                    
+                    // 선택 영역을 이미지 좌표로 변환
+                    const imageLeft = selectLeft - imageOffsetX;
+                    const imageTop = selectTop - imageOffsetY;
+                    
+                    // 이미지 범위 내로 클리핑
+                    const cropLeft = Math.max(0, imageLeft);
+                    const cropTop = Math.max(0, imageTop);
+                    const cropRight = Math.min(imageRect.width, imageLeft + selectWidth);
+                    const cropBottom = Math.min(imageRect.height, imageTop + selectHeight);
+                    
+                    const cropWidth = cropRight - cropLeft;
+                    const cropHeight = cropBottom - cropTop;
+                    
+                    // 유효한 영역인지 확인
+                    if (cropWidth <= 5 || cropHeight <= 5) {
+                        this.showToastMessage('❌ 선택 영역이 PDF 범위 내에 없거나 너무 작습니다');
+                        return;
+                    }
+                    
+                    // 현재 페이지를 고품질로 렌더링
+                    const page = await this.pdf.getPage(this.currentPage);
+                    const highQualityScale = this.renderScale; // 3.0
+                    const viewport = page.getViewport({scale: highQualityScale});
+                    
+                    // 임시 캔버스 생성 및 렌더링
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    
+                    tempCanvas.width = viewport.width;
+                    tempCanvas.height = viewport.height;
+                    
+                    const renderContext = {
+                        canvasContext: tempCtx,
+                        viewport: viewport
+                    };
+                    
+                    const renderTask = page.render(renderContext);
+                    await renderTask.promise;
+                    
+                    // 실제 표시된 이미지 크기와 렌더링된 캔버스 크기의 비율 계산
+                    const scaleRatio = viewport.width / imageRect.width;
+                    
+                    // 캔버스에서 잘라낼 영역 계산
+                    const canvasCropX = cropLeft * scaleRatio;
+                    const canvasCropY = cropTop * scaleRatio;
+                    const canvasCropWidth = cropWidth * scaleRatio;
+                    const canvasCropHeight = cropHeight * scaleRatio;
+                    
+                    // 최종 캔버스 생성
+                    const finalCanvas = document.createElement('canvas');
+                    const finalCtx = finalCanvas.getContext('2d');
+                    
+                    finalCanvas.width = canvasCropWidth;
+                    finalCanvas.height = canvasCropHeight;
+                    
+                    // 선택 영역만 복사
+                    finalCtx.drawImage(
+                        tempCanvas,
+                        canvasCropX, canvasCropY, canvasCropWidth, canvasCropHeight,
+                        0, 0, canvasCropWidth, canvasCropHeight
+                    );
+                    
+                    // 클립보드에 복사
+                    finalCanvas.toBlob(async (blob) => {
+                        const item = new ClipboardItem({'image/png': blob});
+                        await navigator.clipboard.write([item]);
+                        this.showToastMessage('✂️ 선택 영역이 클립보드에 복사되었습니다!');
+                    }, 'image/png', 1.0);
+                    
+                } catch (error) {
+                    console.error('영역 캡쳐 실패:', error);
+                    this.showToastMessage('❌ 영역 캡쳐에 실패했습니다');
+                }
+            }
+            
+            async generateThumbnails() {
+                if (!this.pdf) return;
+                
+                this.loadingThumbnails.textContent = '썸네일 생성 중...';
+                this.thumbnails = [];
+                this.thumbnailsContainer.innerHTML = '<div class="loading-thumbnails">썸네일 생성 중...</div>';
+                
+                try {
+                    // 썸네일을 순차적으로 생성
+                    for (let pageNum = 1; pageNum <= this.totalPages; pageNum++) {
+                        await this.createThumbnail(pageNum);
+                    }
+                    
+                    // 로딩 메시지 제거
+                    const loadingDiv = this.thumbnailsContainer.querySelector('.loading-thumbnails');
+                    if (loadingDiv) {
+                        loadingDiv.remove();
+                    }
+                    
+                    // 현재 페이지 활성화
+                    this.updateThumbnailSelection();
+                    
+                } catch (error) {
+                    console.error('썸네일 생성 실패:', error);
+                    this.loadingThumbnails.textContent = '썸네일 생성 실패';
+                }
+            }
+            
+            async createThumbnail(pageNum) {
+                try {
+                    const page = await this.pdf.getPage(pageNum);
+                    const scale = 0.3; // 썸네일 크기
+                    const viewport = page.getViewport({scale: scale});
+                    
+                    // 썸네일 캔버스 생성
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    
+                    // 썸네일 렌더링
+                    const renderContext = {
+                        canvasContext: ctx,
+                        viewport: viewport
+                    };
+                    
+                    const renderTask = page.render(renderContext);
+                    await renderTask.promise;
+                    
+                    // 썸네일 아이템 생성
+                    const thumbnailItem = document.createElement('div');
+                    thumbnailItem.className = 'thumbnail-item';
+                    thumbnailItem.dataset.page = pageNum;
+                    
+                    // 캔버스 추가
+                    canvas.className = 'thumbnail-canvas';
+                    thumbnailItem.appendChild(canvas);
+                    
+                    // 페이지 라벨 추가
+                    const label = document.createElement('div');
+                    label.className = 'thumbnail-label';
+                    label.textContent = pageNum;
+                    thumbnailItem.appendChild(label);
+                    
+                    // 클릭 이벤트
+                    thumbnailItem.addEventListener('click', () => this.goToPageFromThumbnail(pageNum));
+                    
+                    // 컨테이너에 추가
+                    this.thumbnailsContainer.appendChild(thumbnailItem);
+                    this.thumbnails[pageNum - 1] = thumbnailItem;
+                    
+                } catch (error) {
+                    console.error(`페이지 ${pageNum} 썸네일 생성 실패:`, error);
+                }
+            }
+            
+            async goToPageFromThumbnail(pageNum) {
+                if (pageNum >= 1 && pageNum <= this.totalPages && pageNum !== this.currentPage) {
+                    this.currentPage = pageNum;
+                    await this.renderPage();
+                    this.updateUI();
+                    this.updateThumbnailSelection();
+                    this.scrollToTop();
+                }
+            }
+            
+            updateThumbnailSelection() {
+                // 썸네일이 없으면 아무것도 하지 않음
+                if (!this.thumbnails || this.thumbnails.length === 0) return;
+                
+                // 모든 썸네일의 active 클래스 제거
+                this.thumbnails.forEach((thumbnail, index) => {
+                    if (thumbnail) {
+                        thumbnail.classList.remove('active');
+                    }
+                });
+                
+                // 현재 페이지 썸네일에 active 클래스 추가
+                if (this.thumbnails[this.currentPage - 1]) {
+                    this.thumbnails[this.currentPage - 1].classList.add('active');
+                    
+                    // 현재 썸네일이 보이도록 스크롤 (썸네일 섹션이 열려있을 때만)
+                    if (this.isThumbnailsOpen) {
+                        this.thumbnails[this.currentPage - 1].scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'nearest'
+                        });
+                    }
+                }
+            }
+
+            handleWheel(e) {
+                // 캡쳐 모드에서는 휠 이벤트 무시
+                if (this.isCaptureMode) return;
+                
+                if (e.ctrlKey) {
+                    e.preventDefault();
+                    
+                    // 마우스 휠 확대/축소 - 중앙 기준
+                    if (!this.isZooming) {
+                        this.startZooming();
+                    }
+                    
+                    // 확대/축소 팩터 계산
+                    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+                    let newScale = this.scale * zoomFactor;
+                    newScale = Math.max(0.25, Math.min(5.0, newScale));
+                    
+                    if (newScale !== this.scale) {
+                        // 현재 컨테이너 중앙 좌표 계산
+                        const container = this.pdfContainer;
+                        const containerCenterX = container.clientWidth / 2;
+                        const containerCenterY = container.clientHeight / 2;
+                        
+                        // 현재 스크롤 위치를 기준으로 중앙점의 문서 좌표 계산
+                        const currentCenterX = container.scrollLeft + containerCenterX;
+                        const currentCenterY = container.scrollTop + containerCenterY;
+                        
+                        // 스케일 비율 계산
+                        const scaleRatio = newScale / this.scale;
+                        
+                        // 내부 상태 업데이트
+                        this.scale = newScale;
+                        this.fitMode = 'none';
+                        this.updateFitToggle();
+                        this.updateUI();
+                        
+                        // 이미지와 스크롤 영역 즉시 업데이트
+                        this.updateImageSize();
+                        this.updateScrollAreaForZoom();
+                        
+                        // 스크롤 위치 조정 (중앙 기준 유지)
+                        const newCenterX = currentCenterX * scaleRatio;
+                        const newCenterY = currentCenterY * scaleRatio;
+                        
+                        const newScrollLeft = newCenterX - containerCenterX;
+                        const newScrollTop = newCenterY - containerCenterY;
+                        
+                        // 스크롤 위치 설정
+                        container.scrollLeft = Math.max(0, Math.min(newScrollLeft, container.scrollWidth - container.clientWidth));
+                        container.scrollTop = Math.max(0, Math.min(newScrollTop, container.scrollHeight - container.clientHeight));
+                        
+                        // 텍스트 레이어만 디바운스로 업데이트
+                        this.scheduleTextLayerUpdate();
+                        
+                        // 줌 완료
+                        this.isZooming = false;
+                    }
+                    
+                } else {
+                    // 일반 스크롤 - 스크롤 끝에 도달했을 때만 페이지 전환
+                    const container = this.pdfContainer;
+                    const scrollTop = container.scrollTop;
+                    const scrollHeight = container.scrollHeight;
+                    const clientHeight = container.clientHeight;
+                    
+                    // 세로 스크롤 상태 확인
+                    const canScrollVertically = scrollHeight > clientHeight;
+                    const isAtTop = scrollTop <= 10;
+                    const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+                    
+                    // 위로 스크롤하면서 맨 위에 있고 이전 페이지가 있는 경우
+                    if (e.deltaY < 0 && isAtTop && this.currentPage > 1) {
+                        e.preventDefault();
+                        this.previousPage();
+                    } 
+                    // 아래로 스크롤하면서 맨 아래에 있고 다음 페이지가 있는 경우
+                    else if (e.deltaY > 0 && isAtBottom && this.currentPage < this.totalPages) {
+                        e.preventDefault();
+                        this.nextPage();
+                    }
+                    // 그 외의 경우는 일반 스크롤 동작 허용
+                }
+            }
+
+            async handleResize() {
+                // 툴바 요소 크기 재조정
+                if (this.totalPages > 0) {
+                    this.updatePageInputWidth();
+                    this.updateZoomSelectWidth();
+                }
+                
+                if (this.fitMode !== 'none' && this.pdf) {
+                    this.startZooming();
+                    
+                    // 현재 맞춤 모드에 따라 새로운 스케일 계산
+                    const page = await this.pdf.getPage(this.currentPage);
+                    let newScale;
+                    
+                    if (this.fitMode === 'width') {
+                        newScale = await this.calculateFitToWidthScale(page);
+                    } else if (this.fitMode === 'page') {
+                        newScale = await this.calculateFitToPageScale(page);
+                    } else {
+                        return; // fitMode가 'none'이면 리사이즈 무시
+                    }
+                    
+                    // 스케일 업데이트 (렌더링 없이)
+                    this.scale = newScale;
+                    this.updateFitToggle();
+                    this.updateUI();
+                    this.updateImageSize();
+                    this.updateScrollAreaForZoom();
+                    this.scheduleTextLayerUpdate();
+                    this.isZooming = false;
+                }
+            }
+
+            async handleKeyboard(e) {
+                if (!this.pdf) return;
+
+                // PDF 뷰어가 활성화된 상태에서만 키보드 단축키 동작
+                if (this.pdfViewer.style.display === 'none') return;
+
+                switch(e.key) {
+                    case 'Escape':
+                        // ESC 키로 캡쳐 모드 또는 사이드바 종료
+                        if (this.isCaptureMode) {
+                            e.preventDefault();
+                            this.exitCaptureMode();
+                            this.showToastMessage('✂️ 캡쳐 모드가 종료되었습니다');
+                        } else if (this.isIconPanelOpen) {
+                            // 사이드바가 열려있으면 전체 닫기
+                            e.preventDefault();
+                            this.toggleIconPanel();
+                            this.showToastMessage('📄 사이드바가 닫혔습니다');
+                        }
+                        break;
+                    case 'b':
+                    case 'B':
+                        if (e.ctrlKey && !this.isCaptureMode) {
+                            e.preventDefault();
+                            this.toggleIconPanel();
+                            const message = this.isIconPanelOpen ? '📄 사이드바가 열렸습니다' : '📄 사이드바가 닫혔습니다';
+                            this.showToastMessage(message);
+                        }
+                        break;
+                    case 'x':
+                    case 'X':
+                        if (e.ctrlKey && e.shiftKey && !this.isCaptureMode) {
+                            e.preventDefault();
+                            this.toggleCaptureMode();
+                            if (this.isCaptureMode) {
+                                // 캡쳐 모드 활성화 메시지는 toggleCaptureMode에서 처리
+                            } else {
+                                this.showToastMessage('✂️ 캡쳐 모드가 종료되었습니다');
+                            }
+                        }
+                        break;
+                    case 'ArrowLeft':
+                        // 왼쪽 화살표 - 이전 페이지 (스크롤 상태 무관)
+                        if (!this.isCaptureMode) {
+                            e.preventDefault();
+                            await this.previousPage();
+                        }
+                        break;
+                    case 'ArrowRight':
+                        // 오른쪽 화살표 - 다음 페이지 (스크롤 상태 무관)
+                        if (!this.isCaptureMode) {
+                            e.preventDefault();
+                            await this.nextPage();
+                        }
+                        break;
+                    case 'ArrowUp':
+                        // 위쪽 화살표 - 스크롤이 맨 위면 이전 페이지
+                        if (!this.isCaptureMode && this.pdfContainer.scrollTop <= 10 && this.currentPage > 1) {
+                            e.preventDefault();
+                            await this.previousPage();
+                        }
+                        // 그 외에는 기본 스크롤 동작
+                        break;
+                    case 'ArrowDown':
+                        // 아래쪽 화살표 - 스크롤이 맨 아래면 다음 페이지
+                        if (!this.isCaptureMode) {
+                            const container = this.pdfContainer;
+                            if (container.scrollTop + container.clientHeight >= container.scrollHeight - 10 && this.currentPage < this.totalPages) {
+                                e.preventDefault();
+                                await this.nextPage();
+                            }
+                        }
+                        // 그 외에는 기본 스크롤 동작
+                        break;
+                    case 'c':
+                    case 'C':
+                        if (e.ctrlKey && !this.isCaptureMode) {
+                            e.preventDefault();
+                            await this.smartCopy();
+                        }
+                        break;
+                    case 'a':
+                    case 'A':
+                        if (e.ctrlKey && !this.isCaptureMode) {
+                            // 페이지 입력 필드에 포커스가 있으면 해당 필드 내용만 전체 선택
+                            if (document.activeElement === this.pageInput) {
+                                // 기본 동작 허용 (페이지 입력 필드 전체 선택)
+                                return;
+                            } else {
+                                // PDF 텍스트 전체 선택
+                                e.preventDefault();
+                                this.selectAllPDFText();
+                            }
+                        }
+                        break;
+                    case '=':
+                    case '+':
+                        if (e.ctrlKey && !this.isCaptureMode) {
+                            e.preventDefault();
+                            await this.zoomPage(1.25);
+                        }
+                        break;
+                    case '-':
+                        if (e.ctrlKey && !this.isCaptureMode) {
+                            e.preventDefault();
+                            await this.zoomPage(0.8);
+                        }
+                        break;
+                }
+            }
+        }
+
+        // 앱 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            new PDFClipboard();
+        });
+    </script>
+</body>
+</html>
