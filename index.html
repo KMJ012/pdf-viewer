@@ -442,6 +442,11 @@
             justify-content: center;
         }
 
+        #propertiesBtn {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
         .toolbar-btn:hover {
             background: rgba(75, 75, 75, 0.5);
         }
@@ -774,6 +779,130 @@
             display: block;
         }
 
+        /* 문서 속성 모달 */
+        .properties-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .properties-modal.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .properties-dialog {
+            background: rgb(41, 42, 45);
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 500px;
+            min-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            color: #fff;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+
+        .properties-modal.show .properties-dialog {
+            transform: scale(1);
+        }
+
+        .properties-header {
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #555;
+        }
+
+        .properties-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .properties-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .property-group {
+            padding-bottom: 12px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .property-group:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #666, transparent);
+        }
+
+        .property-group:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+
+        .property-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 2px 0;
+        }
+
+        .property-label {
+            min-width: 140px;
+            font-size: 13px;
+            color: #ccc;
+            flex-shrink: 0;
+        }
+
+        .property-value {
+            font-size: 13px;
+            color: #fff;
+            flex: 1;
+            word-break: break-all;
+        }
+
+        .properties-footer {
+            margin-top: 20px;
+            padding-top: 12px;
+            border-top: 1px solid #555;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .properties-close-btn {
+            background: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .properties-close-btn:hover {
+            background: #3367d6;
+        }
+
         /* 토스트 알림 */
         .toast-container {
             position: fixed;
@@ -901,6 +1030,10 @@
                 padding: 6px;
             }
 
+            #propertiesBtn {
+                font-size: 18px;
+            }
+
             .toolbar-divider {
                 font-size: 12px;
             }
@@ -915,6 +1048,36 @@
                 min-width: 30px;
                 font-size: 12px;
                 padding: 4px 8px;
+            }
+
+            .properties-dialog {
+                min-width: 300px;
+                max-width: 90vw;
+                padding: 20px;
+            }
+
+            .property-group {
+                padding-bottom: 10px;
+                margin-bottom: 10px;
+            }
+
+            .property-item {
+                padding: 1px 0;
+            }
+
+            .property-label {
+                min-width: 100px;
+                font-size: 12px;
+            }
+
+            .property-value {
+                font-size: 12px;
+            }
+
+            .properties-close-btn {
+                border-radius: 18px;
+                padding: 6px 16px;
+                font-size: 12px;
             }
         }
     </style>
@@ -942,7 +1105,7 @@
         </div>
 
         <div class="toolbar-section right">
-            <!-- 오른쪽은 비워둠 -->
+            <button class="toolbar-btn" id="propertiesBtn" title="문서 속성">⋮</button>
         </div>
     </div>
 
@@ -1036,6 +1199,21 @@
         </div>
     </div>
 
+    <!-- 문서 속성 모달 -->
+    <div class="properties-modal" id="propertiesModal">
+        <div class="properties-dialog">
+            <div class="properties-header">
+                <h2 class="properties-title">문서 속성</h2>
+            </div>
+            <div class="properties-content" id="propertiesContent">
+                <!-- 속성들이 동적으로 여기에 추가됩니다 -->
+            </div>
+            <div class="properties-footer">
+                <button class="properties-close-btn" id="propertiesCloseBtnFooter">닫기</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 토스트 알림 컨테이너 -->
     <div class="toast-container" id="toastContainer">
     </div>
@@ -1051,6 +1229,7 @@
                 this.totalPages = 0;
                 this.scale = 1.0;
                 this.fitMode = 'none'; // 'width', 'page', 'none'
+                this.currentFile = null; // 현재 파일 객체 저장
                 
                 // 성능 최적화된 렌더링 설정
                 this.pixelRatio = window.devicePixelRatio || 1;
@@ -1152,6 +1331,12 @@
                 this.captureOverlay = document.getElementById('captureOverlay');
                 this.captureGuide = document.getElementById('captureGuide');
                 this.selectionArea = document.getElementById('selectionArea');
+                
+                // 문서 속성 관련 요소들
+                this.propertiesBtn = document.getElementById('propertiesBtn');
+                this.propertiesModal = document.getElementById('propertiesModal');
+                this.propertiesCloseBtnFooter = document.getElementById('propertiesCloseBtnFooter');
+                this.propertiesContent = document.getElementById('propertiesContent');
             }
 
             bindEvents() {
@@ -1225,6 +1410,19 @@
                 });
                 this.folderInput.addEventListener('change', (e) => {
                     this.handleFolderSelect(e);
+                });
+                
+                // 문서 속성 이벤트들
+                this.propertiesBtn.addEventListener('click', () => {
+                    this.showDocumentProperties();
+                });
+                this.propertiesCloseBtnFooter.addEventListener('click', () => {
+                    this.hideDocumentProperties();
+                });
+                this.propertiesModal.addEventListener('click', (e) => {
+                    if (e.target === this.propertiesModal) {
+                        this.hideDocumentProperties();
+                    }
                 });
                 
                 // 초기 빈 영역 클릭 이벤트
@@ -1302,6 +1500,173 @@
                 this.captureOverlay.addEventListener('mouseleave', (e) => this.cancelSelection(e));
             }
 
+            // 문서 속성 표시
+            async showDocumentProperties() {
+                if (!this.pdf || !this.currentFile) {
+                    this.showToastMessage('❌ PDF 파일이 로드되지 않았습니다');
+                    return;
+                }
+
+                try {
+                    // PDF 메타데이터 가져오기
+                    const metadata = await this.pdf.getMetadata();
+                    const info = metadata.info;
+                    
+                    // 첫 번째 페이지에서 크기 정보 가져오기
+                    const firstPage = await this.pdf.getPage(1);
+                    const viewport = firstPage.getViewport({scale: 1.0});
+                    
+                    // 파일 크기 포맷팅
+                    const fileSize = this.formatFileSize(this.currentFile.size);
+                    
+                    // 페이지 크기 계산 (72 DPI 기준으로 mm 변환)
+                    const widthMm = Math.round(viewport.width * 25.4 / 72);
+                    const heightMm = Math.round(viewport.height * 25.4 / 72);
+                    const orientation = viewport.width > viewport.height ? '가로 모드' : '세로 모드';
+                    
+                    // 날짜 포맷팅 개선
+                    const formatDate = (dateStr) => {
+                        if (!dateStr) return '-';
+                        
+                        try {
+                            let date;
+                            
+                            // PDF 표준 날짜 형식 처리 (D:YYYYMMDDHHmmSSOHH'mm')
+                            if (typeof dateStr === 'string' && dateStr.startsWith('D:')) {
+                                const cleanDate = dateStr.substring(2); // D: 제거
+                                const year = cleanDate.substring(0, 4);
+                                const month = cleanDate.substring(4, 6);
+                                const day = cleanDate.substring(6, 8);
+                                const hour = cleanDate.substring(8, 10) || '00';
+                                const minute = cleanDate.substring(10, 12) || '00';
+                                const second = cleanDate.substring(12, 14) || '00';
+                                
+                                // ISO 형식으로 변환
+                                const isoString = `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+                                date = new Date(isoString);
+                            } else {
+                                // 일반 날짜 문자열 처리
+                                date = new Date(dateStr);
+                            }
+                            
+                            if (isNaN(date.getTime())) return '-';
+                            
+                            return date.toLocaleString('ko-KR', {
+                                year: '2-digit',
+                                month: 'numeric',
+                                day: 'numeric',
+                                weekday: 'short',
+                                hour: 'numeric',
+                                minute: 'numeric',
+                                second: 'numeric',
+                                hour12: false
+                            }).replace(/\./g, '. ');
+                        } catch (e) {
+                            console.log('날짜 파싱 오류:', e, '원본:', dateStr);
+                            return '-';
+                        }
+                    };
+
+                    // 속성 데이터 구성
+                    const properties = [
+                        {
+                            group: '기본 정보',
+                            items: [
+                                { label: '파일 이름:', value: this.currentFile.name },
+                                { label: '파일 크기:', value: fileSize }
+                            ]
+                        },
+                        {
+                            group: '',
+                            items: [
+                                { label: '직책:', value: info.Title || this.currentFile.name.replace('.pdf', '') },
+                                { label: '작성자:', value: info.Author || '-' },
+                                { label: '제목:', value: info.Subject || '-' },
+                                { label: '키워드:', value: info.Keywords || '-' },
+                                { label: '생성됨:', value: formatDate(info.CreationDate) },
+                                { label: '수정:', value: formatDate(info.ModDate) },
+                                { label: '애플리케이션:', value: info.Creator || '-' }
+                            ]
+                        },
+                        {
+                            group: '',
+                            items: [
+                                { label: 'PDF 변환 프로그램:', value: info.Producer || '-' },
+                                { label: 'PDF 버전:', value: metadata.metadata?.get('pdf:PDFVersion') || '1.7' },
+                                { label: '페이지 수:', value: this.totalPages.toString() },
+                                { label: '페이지 크기:', value: `${widthMm}×${heightMm}mm(${orientation})` }
+                            ]
+                        },
+                        {
+                            group: '',
+                            items: [
+                                { label: '빠른 웹 보기:', value: '아니요' }
+                            ]
+                        }
+                    ];
+
+                    // HTML 생성
+                    this.propertiesContent.innerHTML = '';
+                    
+                    properties.forEach(group => {
+                        const groupDiv = document.createElement('div');
+                        groupDiv.className = 'property-group';
+                        
+                        group.items.forEach(item => {
+                            const itemDiv = document.createElement('div');
+                            itemDiv.className = 'property-item';
+                            
+                            const labelDiv = document.createElement('div');
+                            labelDiv.className = 'property-label';
+                            labelDiv.textContent = item.label;
+                            
+                            const valueDiv = document.createElement('div');
+                            valueDiv.className = 'property-value';
+                            valueDiv.textContent = item.value;
+                            
+                            itemDiv.appendChild(labelDiv);
+                            itemDiv.appendChild(valueDiv);
+                            groupDiv.appendChild(itemDiv);
+                        });
+                        
+                        this.propertiesContent.appendChild(groupDiv);
+                    });
+
+                    // 모달 표시 (애니메이션과 함께)
+                    this.propertiesModal.style.display = 'flex';
+                    // 브라우저가 렌더링을 완료한 후 show 클래스 추가
+                    setTimeout(() => {
+                        this.propertiesModal.classList.add('show');
+                    }, 10);
+                    
+                } catch (error) {
+                    console.error('문서 속성 로드 실패:', error);
+                    this.showToastMessage('❌ 문서 속성을 가져오는데 실패했습니다');
+                }
+            }
+
+            // 문서 속성 숨기기 (애니메이션과 함께)
+            hideDocumentProperties() {
+                this.propertiesModal.classList.remove('show');
+                // 애니메이션 완료 후 display none
+                setTimeout(() => {
+                    if (!this.propertiesModal.classList.contains('show')) {
+                        this.propertiesModal.style.display = 'none';
+                    }
+                }, 300);
+            }
+
+            // 파일 크기 포맷팅
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + sizes[i];
+            }
+
             // 폴더 선택 다이얼로그 열기 메서드 추가
             openFolderDialog() {
                 console.log('폴더 선택 다이얼로그 열기');
@@ -1315,6 +1680,7 @@
                 }
 
                 this.loading.style.display = 'block';
+                this.currentFile = file; // 현재 파일 저장
                 
                 try {
                     const arrayBuffer = await file.arrayBuffer();
@@ -3209,8 +3575,11 @@
 
                 switch(e.key) {
                     case 'Escape':
-                        // ESC 키로 캡쳐 모드 또는 사이드바 종료
-                        if (this.isCaptureMode) {
+                        // ESC 키로 모달, 캡쳐 모드 또는 사이드바 종료
+                        if (this.propertiesModal.classList.contains('show')) {
+                            e.preventDefault();
+                            this.hideDocumentProperties();
+                        } else if (this.isCaptureMode) {
                             e.preventDefault();
                             this.exitCaptureMode();
                             this.showToastMessage('✂️ 캡쳐 모드가 종료되었습니다');
