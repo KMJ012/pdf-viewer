@@ -649,6 +649,10 @@
             position: relative;
         }
 
+        .pdf-container.fit-page {
+            overflow: hidden; /* 페이지 맞춤 모드에서는 스크롤 완전 금지 */
+        }
+
         .pdf-wrapper {
             position: relative;
             min-width: 100%;
@@ -661,7 +665,7 @@
         .pdf-content {
             position: relative;
             display: inline-block;
-            margin: 20px;
+            margin: 10px; /* 여백을 20px에서 10px로 줄임 */
         }
 
         #pdfImage {
@@ -1050,7 +1054,7 @@
                 
                 // 성능 최적화된 렌더링 설정
                 this.pixelRatio = window.devicePixelRatio || 1;
-                this.renderScale = 5.0; // 고품질 렌더링 스케일
+                this.renderScale = 3.0; // 고품질 렌더링 스케일
                 
                 // 원본 페이지 크기 저장 (중요!)
                 this.originalPageWidth = 0;
@@ -1842,7 +1846,7 @@
                     this.scale = newScale;
                     this.updateUI();
                     this.updateImageSize();
-                    this.updateScrollAreaForZoom();
+                    this.updateScrollAreaForZoom(); // 페이지 맞춤 모드에서 스크롤 방지 적용
                     this.scheduleTextLayerUpdate();
                     
                 } catch (error) {
@@ -1887,7 +1891,7 @@
 
             async renderAsImage(page, displayViewport) {
                 try {
-                    // 원본 페이지 크기 저장 (scale 1.0 기준)
+                    // 현재 페이지의 실제 크기 저장 (scale 1.0 기준)
                     const originalViewport = page.getViewport({scale: 1.0});
                     this.originalPageWidth = originalViewport.width;
                     this.originalPageHeight = originalViewport.height;
@@ -1945,29 +1949,39 @@
                 // PDF 래퍼 크기를 PDF 크기 + 여백으로 설정
                 const pdfWidth = this.originalPageWidth * this.scale;
                 const pdfHeight = this.originalPageHeight * this.scale;
-                const margin = 40; // 상하좌우 20px씩 여백
+                const margin = 20; // 상하좌우 10px씩 여백으로 줄임
                 
                 // 컨테이너보다 작으면 컨테이너 크기에 맞춤 (중앙 정렬)
                 const containerWidth = this.pdfContainer.clientWidth;
                 const containerHeight = this.pdfContainer.clientHeight;
                 
-                const wrapperWidth = Math.max(pdfWidth + margin, containerWidth);
-                const wrapperHeight = Math.max(pdfHeight + margin, containerHeight);
-                
-                this.pdfWrapper.style.width = wrapperWidth + 'px';
-                this.pdfWrapper.style.height = wrapperHeight + 'px';
-                
-                // PDF가 컨테이너보다 작으면 중앙 정렬
-                if (pdfWidth < containerWidth) {
+                // 페이지 맞춤 모드에서는 스크롤이 생기지 않으면서도 최대한 화면을 활용
+                if (this.fitMode === 'page') {
+                    // 래퍼를 컨테이너보다 살짝 작게 하여 스크롤 방지, 하지만 여백은 최소화
+                    this.pdfWrapper.style.width = (containerWidth - 2) + 'px'; // 최소한의 여유 공간
+                    this.pdfWrapper.style.height = (containerHeight - 2) + 'px'; // 최소한의 여유 공간
                     this.pdfWrapper.style.justifyContent = 'center';
-                } else {
-                    this.pdfWrapper.style.justifyContent = 'flex-start';
-                }
-                
-                if (pdfHeight < containerHeight) {
                     this.pdfWrapper.style.alignItems = 'center';
                 } else {
-                    this.pdfWrapper.style.alignItems = 'flex-start';
+                    // 다른 모드에서는 기존 로직 사용
+                    const wrapperWidth = Math.max(pdfWidth + margin, containerWidth);
+                    const wrapperHeight = Math.max(pdfHeight + margin, containerHeight);
+                    
+                    this.pdfWrapper.style.width = wrapperWidth + 'px';
+                    this.pdfWrapper.style.height = wrapperHeight + 'px';
+                    
+                    // PDF가 컨테이너보다 작으면 중앙 정렬
+                    if (pdfWidth < containerWidth) {
+                        this.pdfWrapper.style.justifyContent = 'center';
+                    } else {
+                        this.pdfWrapper.style.justifyContent = 'flex-start';
+                    }
+                    
+                    if (pdfHeight < containerHeight) {
+                        this.pdfWrapper.style.alignItems = 'center';
+                    } else {
+                        this.pdfWrapper.style.alignItems = 'flex-start';
+                    }
                 }
             }
 
@@ -2159,16 +2173,29 @@
 
             async calculateFitToWidth(page) {
                 const containerWidth = this.pdfContainer.clientWidth;
+                
+                // 현재 페이지의 실제 크기 가져오기
+                const viewport = page.getViewport({scale: 1.0});
+                const pageWidth = viewport.width;
+                
+                const safeMargin = 80; // 스크롤바 방지를 위한 안전 여백
                 // 원본 크기 사용
-                this.scale = (containerWidth - 40) / this.originalPageWidth; // 여백 고려
+                this.scale = (containerWidth - safeMargin) / pageWidth;
             }
 
             async calculateFitToPage(page) {
                 const containerWidth = this.pdfContainer.clientWidth;
                 const containerHeight = this.pdfContainer.clientHeight;
                 
-                const scaleX = (containerWidth - 40) / this.originalPageWidth; // 여백 고려
-                const scaleY = (containerHeight - 40) / this.originalPageHeight; // 여백 고려
+                // 현재 페이지의 실제 크기 가져오기
+                const viewport = page.getViewport({scale: 1.0});
+                const pageWidth = viewport.width;
+                const pageHeight = viewport.height;
+                
+                // 페이지 맞춤 모드에서는 최소한의 여백만 확보하여 화면을 최대한 활용
+                const safeMargin = 20; // 최소한의 여백으로 줄임
+                const scaleX = (containerWidth - safeMargin) / pageWidth;
+                const scaleY = (containerHeight - safeMargin) / pageHeight;
                 this.scale = Math.min(scaleX, scaleY);
             }
 
@@ -2194,15 +2221,27 @@
 
             async calculateFitToWidthScale(page) {
                 const containerWidth = this.pdfContainer.clientWidth;
-                return (containerWidth - 40) / this.originalPageWidth;
+                
+                // 현재 페이지의 실제 크기 가져오기
+                const viewport = page.getViewport({scale: 1.0});
+                const pageWidth = viewport.width;
+                
+                const safeMargin = 80; // 스크롤바 방지를 위한 안전 여백
+                return (containerWidth - safeMargin) / pageWidth;
             }
 
             async calculateFitToPageScale(page) {
                 const containerWidth = this.pdfContainer.clientWidth;
                 const containerHeight = this.pdfContainer.clientHeight;
                 
-                const scaleX = (containerWidth - 40) / this.originalPageWidth;
-                const scaleY = (containerHeight - 40) / this.originalPageHeight;
+                // 현재 페이지의 실제 크기 가져오기
+                const viewport = page.getViewport({scale: 1.0});
+                const pageWidth = viewport.width;
+                const pageHeight = viewport.height;
+                
+                const safeMargin = 20; // 최소한의 여백으로 줄임
+                const scaleX = (containerWidth - safeMargin) / pageWidth;
+                const scaleY = (containerHeight - safeMargin) / pageHeight;
                 return Math.min(scaleX, scaleY);
             }
 
@@ -2212,14 +2251,18 @@
                     this.fitToggleBtn.textContent = '↔️'; // 페이지 맞춤 상태, 클릭하면 너비 맞춤으로
                     this.fitToggleBtn.classList.add('active');
                     this.fitToggleBtn.title = '너비에 맞춤으로 전환';
+                    // 페이지 맞춤 모드에서는 스크롤 완전 금지
+                    this.pdfContainer.classList.add('fit-page');
                 } else if (this.fitMode === 'width') {
                     this.fitToggleBtn.textContent = '↕️'; // 너비 맞춤 상태, 클릭하면 페이지 맞춤으로
                     this.fitToggleBtn.classList.add('active');
                     this.fitToggleBtn.title = '페이지에 맞춤으로 전환';
+                    this.pdfContainer.classList.remove('fit-page');
                 } else {
                     this.fitToggleBtn.textContent = '↕️'; // 기본 상태, 클릭하면 페이지 맞춤으로
                     this.fitToggleBtn.classList.remove('active');
                     this.fitToggleBtn.title = '페이지에 맞춤';
+                    this.pdfContainer.classList.remove('fit-page');
                 }
             }
 
@@ -2272,7 +2315,7 @@
                 const oldScale = this.scale;
                 this.scale = newScale;
                 if (newFitMode !== undefined) this.fitMode = newFitMode;
-                this.updateFitToggle();
+                this.updateFitToggle(); // CSS 클래스 업데이트 포함
                 this.updateUI();
                 
                 // 이미지와 텍스트 레이어를 새로운 스케일로 즉시 업데이트
@@ -2327,23 +2370,33 @@
                 const containerWidth = this.pdfContainer.clientWidth;
                 const containerHeight = this.pdfContainer.clientHeight;
                 
-                const wrapperWidth = Math.max(scaledWidth + margin, containerWidth);
-                const wrapperHeight = Math.max(scaledHeight + margin, containerHeight);
-                
-                this.pdfWrapper.style.width = wrapperWidth + 'px';
-                this.pdfWrapper.style.height = wrapperHeight + 'px';
-                
-                // 중앙 정렬 설정
-                if (scaledWidth < containerWidth) {
+                // 페이지 맞춤 모드에서는 스크롤이 생기지 않으면서도 최대한 화면을 활용
+                if (this.fitMode === 'page') {
+                    // 래퍼를 컨테이너보다 살짝 작게 하여 스크롤 방지, 하지만 여백은 최소화
+                    this.pdfWrapper.style.width = (containerWidth - 2) + 'px'; // 최소한의 여유 공간
+                    this.pdfWrapper.style.height = (containerHeight - 2) + 'px'; // 최소한의 여유 공간
                     this.pdfWrapper.style.justifyContent = 'center';
-                } else {
-                    this.pdfWrapper.style.justifyContent = 'flex-start';
-                }
-                
-                if (scaledHeight < containerHeight) {
                     this.pdfWrapper.style.alignItems = 'center';
                 } else {
-                    this.pdfWrapper.style.alignItems = 'flex-start';
+                    // 다른 모드에서는 기존 로직 사용
+                    const wrapperWidth = Math.max(scaledWidth + margin, containerWidth);
+                    const wrapperHeight = Math.max(scaledHeight + margin, containerHeight);
+                    
+                    this.pdfWrapper.style.width = wrapperWidth + 'px';
+                    this.pdfWrapper.style.height = wrapperHeight + 'px';
+                    
+                    // 중앙 정렬 설정
+                    if (scaledWidth < containerWidth) {
+                        this.pdfWrapper.style.justifyContent = 'center';
+                    } else {
+                        this.pdfWrapper.style.justifyContent = 'flex-start';
+                    }
+                    
+                    if (scaledHeight < containerHeight) {
+                        this.pdfWrapper.style.alignItems = 'center';
+                    } else {
+                        this.pdfWrapper.style.alignItems = 'flex-start';
+                    }
                 }
             }
             
@@ -2494,6 +2547,19 @@
                 if (this.currentPage > 1) {
                     this.currentPage--;
                     await this.renderPage();
+                    
+                    // 맞춤 모드인 경우 새 페이지에 맞게 스케일 재조정
+                    if (this.fitMode !== 'none') {
+                        const page = await this.pdf.getPage(this.currentPage);
+                        if (this.fitMode === 'width') {
+                            await this.calculateFitToWidth(page);
+                        } else if (this.fitMode === 'page') {
+                            await this.calculateFitToPage(page);
+                        }
+                        // 스케일 변경 후 다시 렌더링
+                        await this.renderPage();
+                    }
+                    
                     this.updateUI();
                     this.updateThumbnailSelection();
                     // 이전 페이지로 이동할 때는 맨 아래로 스크롤
@@ -2507,6 +2573,19 @@
                 if (this.currentPage < this.totalPages) {
                     this.currentPage++;
                     await this.renderPage();
+                    
+                    // 맞춤 모드인 경우 새 페이지에 맞게 스케일 재조정
+                    if (this.fitMode !== 'none') {
+                        const page = await this.pdf.getPage(this.currentPage);
+                        if (this.fitMode === 'width') {
+                            await this.calculateFitToWidth(page);
+                        } else if (this.fitMode === 'page') {
+                            await this.calculateFitToPage(page);
+                        }
+                        // 스케일 변경 후 다시 렌더링
+                        await this.renderPage();
+                    }
+                    
                     this.updateUI();
                     this.updateThumbnailSelection();
                     // 다음 페이지로 이동할 때는 맨 위로 스크롤
@@ -2519,6 +2598,19 @@
                 if (pageNum >= 1 && pageNum <= this.totalPages && pageNum !== this.currentPage) {
                     this.currentPage = pageNum;
                     await this.renderPage();
+                    
+                    // 맞춤 모드인 경우 새 페이지에 맞게 스케일 재조정
+                    if (this.fitMode !== 'none') {
+                        const page = await this.pdf.getPage(this.currentPage);
+                        if (this.fitMode === 'width') {
+                            await this.calculateFitToWidth(page);
+                        } else if (this.fitMode === 'page') {
+                            await this.calculateFitToPage(page);
+                        }
+                        // 스케일 변경 후 다시 렌더링
+                        await this.renderPage();
+                    }
+                    
                     this.updateUI();
                     this.updateThumbnailSelection();
                     this.scrollToTop();
@@ -2948,6 +3040,19 @@
                 if (pageNum >= 1 && pageNum <= this.totalPages && pageNum !== this.currentPage) {
                     this.currentPage = pageNum;
                     await this.renderPage();
+                    
+                    // 맞춤 모드인 경우 새 페이지에 맞게 스케일 재조정
+                    if (this.fitMode !== 'none') {
+                        const page = await this.pdf.getPage(this.currentPage);
+                        if (this.fitMode === 'width') {
+                            await this.calculateFitToWidth(page);
+                        } else if (this.fitMode === 'page') {
+                            await this.calculateFitToPage(page);
+                        }
+                        // 스케일 변경 후 다시 렌더링
+                        await this.renderPage();
+                    }
+                    
                     this.updateUI();
                     this.updateThumbnailSelection();
                     this.scrollToTop();
@@ -3012,7 +3117,7 @@
                         // 내부 상태 업데이트
                         this.scale = newScale;
                         this.fitMode = 'none';
-                        this.updateFitToggle();
+                        this.updateFitToggle(); // CSS 클래스 업데이트 포함
                         this.updateUI();
                         
                         // 이미지와 스크롤 영역 즉시 업데이트
@@ -3090,7 +3195,7 @@
                     this.updateFitToggle();
                     this.updateUI();
                     this.updateImageSize();
-                    this.updateScrollAreaForZoom();
+                    this.updateScrollAreaForZoom(); // 페이지 맞춤 모드에서 스크롤 방지 적용
                     this.scheduleTextLayerUpdate();
                     this.isZooming = false;
                 }
