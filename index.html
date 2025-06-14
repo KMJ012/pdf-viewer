@@ -1094,18 +1094,18 @@
             <input type="number" class="toolbar-input" id="pageInput" min="1" value="1">
             <span class="page-divider">/ <span id="totalPages">1</span></span>
             <div class="toolbar-divider">|</div>
-            <button class="toolbar-btn" id="zoomOut">-</button>
+            <button class="toolbar-btn" id="zoomOut" title="축소 (Ctrl+-)">-</button>
             <select class="zoom-select" id="zoomSelect">
                 <!-- 옵션들은 JavaScript에서 동적으로 생성 -->
             </select>
-            <button class="toolbar-btn" id="zoomIn">+</button>
+            <button class="toolbar-btn" id="zoomIn" title="확대 (Ctrl++)">+</button>
             <div class="toolbar-divider">|</div>
             <button class="toolbar-btn fit-toggle-btn" id="fitToggleBtn" title="페이지 맞춤 / 너비 맞춤 전환">↕️</button>
             <button class="toolbar-btn" id="captureBtn" title="영역 캡쳐 (Ctrl+Shift+X)">✂️</button>
         </div>
 
         <div class="toolbar-section right">
-            <button class="toolbar-btn" id="propertiesBtn" title="문서 속성">⋮</button>
+            <button class="toolbar-btn" id="propertiesBtn" title="문서 속성 (Ctrl+I)">⋮</button>
         </div>
     </div>
 
@@ -1144,18 +1144,19 @@
         <div class="main-content" id="mainContent">
             <!-- 파일 입력 요소들 (uploadArea 밖으로 이동) -->
             <input type="file" class="file-input" id="fileInput" accept=".pdf">
-            <input type="file" class="file-input" id="folderInput" webkitdirectory directory multiple accept=".pdf">
+            <input type="file" class="file-input" id="folderInput" webkitdirectory directory multiple>
             
             <!-- 업로드 영역 -->
             <div class="upload-area" id="uploadArea">
                 <div class="upload-icon">📁</div>
-                <div class="upload-text">PDF가 들어있는 폴더를 선택하세요</div>
+                <div class="upload-text">폴더를 선택하세요</div>
                 <button class="upload-btn">폴더 선택</button>
                 <div style="margin-top: 20px; text-align: center; color: #9aa0a6; font-size: 14px; line-height: 1.6;">
                     <strong style="color: #5f6368;">사용법:</strong><br>
-                    <strong style="color: #4285f4;">• 폴더 선택:</strong> <strong>폴더 선택 버튼</strong>으로 PDF가 들어있는 폴더 선택<br>
-                    <strong style="color: #4285f4;">• 폴더 탐색기:</strong> <strong>📁 아이콘</strong>으로 선택된 폴더의 PDF 파일들 관리<br>
+                    <strong style="color: #4285f4;">• 폴더 선택:</strong> <strong>폴더 선택 버튼</strong>으로 폴더 선택 (모든 폴더 구조 표시, PDF 파일만 열기 가능)<br>
+                    <strong style="color: #4285f4;">• 폴더 탐색기:</strong> <strong>📁 아이콘</strong>으로 선택된 폴더의 모든 폴더와 PDF 파일들 관리<br>
                     <strong style="color: #4285f4;">• 페이지 썸네일:</strong> <strong>🖼️ 아이콘</strong>으로 페이지 썸네일 보기 및 빠른 이동<br>
+                    <strong style="color: #4285f4;">• 문서 속성:</strong> <strong>⋮ 버튼</strong> 또는 <strong>Ctrl+I</strong>로 문서 정보 확인<br>
                     <strong style="color: #4285f4;">• 스마트 복사:</strong> <strong>Ctrl+C</strong>로 텍스트 선택 시 텍스트 복사, 미선택 시 이미지 복사<br>
                     <strong style="color: #4285f4;">• 영역 캡쳐:</strong> <strong>✂️ 버튼</strong> 또는 <strong>Ctrl+Shift+X</strong>로 원하는 영역을 드래그하여 선택 후 클립보드 복사<br>
                     <strong style="color: #4285f4;">• 사이드바 토글:</strong> <strong>☰ 버튼</strong> 또는 <strong>Ctrl+B</strong>로 사이드바 열기/닫기<br>
@@ -1362,8 +1363,11 @@
                     // PDF 파일만 필터링
                     const pdfFiles = files.filter(file => file.type === 'application/pdf');
                     
-                    if (pdfFiles.length === 0) {
-                        alert('PDF 파일만 업로드 가능합니다!');
+                    if (pdfFiles.length === 0 && files.length > 0) {
+                        this.showToastMessage('📁 PDF 파일이 포함된 폴더를 선택해주세요');
+                        return;
+                    } else if (pdfFiles.length === 0) {
+                        this.showToastMessage('❌ 파일을 인식할 수 없습니다');
                         return;
                     }
                     
@@ -1887,17 +1891,8 @@
 
                 console.log('선택된 파일들:', files.length);
                 
-                // PDF 파일만 필터링
-                const pdfFiles = files.filter(file => file.type === 'application/pdf');
-                console.log('PDF 파일들:', pdfFiles.length);
-
-                if (pdfFiles.length === 0) {
-                    this.showToastMessage('❌ 선택한 폴더에 PDF 파일이 없습니다');
-                    return;
-                }
-
                 // 폴더명 추출 (첫 번째 파일의 경로에서)
-                const firstFile = pdfFiles[0];
+                const firstFile = files[0];
                 const pathParts = firstFile.webkitRelativePath.split('/');
                 const folderName = pathParts[0]; // 첫 번째 부분이 폴더명
                 this.currentFolderName = folderName;
@@ -1905,8 +1900,11 @@
                 // 폴더 제목 업데이트
                 this.updateFolderTitle(folderName);
 
-                // 폴더 구조 생성
-                this.buildFolderStructure(pdfFiles);
+                // 폴더 구조 생성 (모든 파일과 폴더 포함)
+                this.buildFolderStructure(files);
+                
+                // PDF 파일 개수 확인
+                const pdfFiles = files.filter(file => file.type === 'application/pdf');
                 
                 // 폴더 선택 완료 메시지 표시
                 this.showFolderSelectedMessage();
@@ -1925,7 +1923,11 @@
                     this.renderFolderTree();
                 }
                 
-                this.showToastMessage(`✅ ${pdfFiles.length}개의 PDF 파일을 찾았습니다`);
+                if (pdfFiles.length > 0) {
+                    this.showToastMessage(`✅ ${pdfFiles.length}개의 PDF 파일을 찾았습니다`);
+                } else {
+                    this.showToastMessage('📁 폴더 구조를 로드했습니다 (PDF 파일 없음)');
+                }
             }
 
             // 폴더 제목 업데이트 메서드 추가
@@ -1937,7 +1939,7 @@
                 }
             }
 
-            // 폴더 구조 생성 - 중복 제거 로직 개선
+            // 폴더 구조 생성 - 모든 폴더 표시, PDF 파일만 필터링
             buildFolderStructure(files) {
                 const structure = {
                     name: this.currentFolderName || '선택된 폴더',
@@ -1949,23 +1951,26 @@
 
                 console.log('폴더 구조 생성 시작, 파일 개수:', files.length);
 
+                // 먼저 모든 폴더 구조를 생성
+                const folderSet = new Set();
+                
                 files.forEach(file => {
                     const pathParts = file.webkitRelativePath.split('/');
-                    console.log('파일 경로:', file.webkitRelativePath, '-> 파트들:', pathParts);
                     
+                    // 폴더 경로들을 수집 (파일명 제외)
+                    for (let i = 1; i < pathParts.length - 1; i++) {
+                        const folderPath = pathParts.slice(0, i + 1).join('/');
+                        folderSet.add(folderPath);
+                    }
+                });
+
+                // 폴더 구조 생성
+                folderSet.forEach(folderPath => {
+                    const pathParts = folderPath.split('/');
                     let current = structure;
 
-                    // 첫 번째 폴더(루트)는 이미 structure에 설정되었으므로 1부터 시작
-                    for (let i = 1; i < pathParts.length - 1; i++) {
+                    for (let i = 1; i < pathParts.length; i++) {
                         const folderName = pathParts[i];
-                        
-                        // 같은 이름의 폴더 중복 방지 - 루트 폴더와 같은 이름이면 건너뛰기
-                        if (folderName === pathParts[0] && i === 1) {
-                            console.log(`  중복 루트 폴더 "${folderName}" 건너뛰기`);
-                            continue;
-                        }
-                        
-                        console.log(`  레벨 ${i}: 폴더 "${folderName}" 처리 중`);
                         
                         if (!current.children[folderName]) {
                             current.children[folderName] = {
@@ -1975,14 +1980,31 @@
                                 files: [],
                                 expanded: false
                             };
-                            console.log(`    새 폴더 생성: "${folderName}"`);
+                            console.log(`  새 폴더 생성: "${folderName}"`);
                         }
                         current = current.children[folderName];
                     }
+                });
 
-                    // 파일 추가 (마지막 파트가 파일명)
+                // 이제 PDF 파일들만 추가
+                files.forEach(file => {
+                    // PDF 파일만 처리
+                    if (file.type !== 'application/pdf') {
+                        return;
+                    }
+
+                    const pathParts = file.webkitRelativePath.split('/');
+                    let current = structure;
+
+                    // 폴더 경로 따라가기 (파일명 제외)
+                    for (let i = 1; i < pathParts.length - 1; i++) {
+                        const folderName = pathParts[i];
+                        current = current.children[folderName];
+                    }
+
+                    // PDF 파일 추가
                     const fileName = pathParts[pathParts.length - 1];
-                    console.log(`  파일 "${fileName}"을 현재 위치에 추가`);
+                    console.log(`  PDF 파일 "${fileName}"을 현재 위치에 추가`);
                     
                     current.files.push({
                         name: fileName,
@@ -2094,43 +2116,57 @@
                     folderItem.className = 'folder-item';
                     folderItem.style.paddingLeft = (depth * 16 + 4) + 'px';
 
-                    const hasChildren = Object.keys(node.children).length > 0 || node.files.length > 0;
-                    
+                    // 모든 폴더를 상호작용 가능하게 만들기
                     folderItem.innerHTML = `
-                        <span class="folder-icon ${hasChildren ? 'expandable' : ''}" data-action="toggle">
-                            ${hasChildren ? (node.expanded ? '📂' : '📁') : '📁'}
+                        <span class="folder-icon expandable" data-action="toggle">
+                            ${node.expanded ? '📂' : '📁'}
                         </span>
                         <span class="folder-name">${node.name}</span>
                     `;
 
-                    // 폴더 전체 라인에 클릭 이벤트 (폴더 열기/닫기)
+                    // 모든 폴더에 클릭 이벤트 (열기/닫기)
                     folderItem.addEventListener('click', (e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         
-                        if (hasChildren) {
-                            node.expanded = !node.expanded;
-                            this.renderFolderTree();
-                        }
+                        // 모든 폴더 토글 가능
+                        node.expanded = !node.expanded;
+                        this.renderFolderTree();
                     });
 
                     container.appendChild(folderItem);
 
-                    // 확장된 폴더의 자식들 렌더링
+                    // 확장된 폴더의 자식들 렌더링 (자식이 있을 때만)
                     if (node.expanded) {
-                        // 하위 폴더들 먼저
-                        Object.values(node.children)
-                            .sort((a, b) => a.name.localeCompare(b.name))
-                            .forEach(child => {
-                                this.renderFolderNode(child, container, depth + 1);
-                            });
+                        const hasSubfolders = Object.keys(node.children).length > 0;
+                        const hasPdfFiles = node.files.length > 0;
+                        
+                        if (hasSubfolders || hasPdfFiles) {
+                            // 하위 폴더들 먼저
+                            Object.values(node.children)
+                                .sort((a, b) => a.name.localeCompare(b.name))
+                                .forEach(child => {
+                                    this.renderFolderNode(child, container, depth + 1);
+                                });
 
-                        // 그 다음 파일들
-                        node.files
-                            .sort((a, b) => a.name.localeCompare(b.name))
-                            .forEach(fileNode => {
-                                this.renderFileNode(fileNode, container, depth + 1);
-                            });
+                            // 그 다음 파일들 (PDF만)
+                            node.files
+                                .sort((a, b) => a.name.localeCompare(b.name))
+                                .forEach(fileNode => {
+                                    this.renderFileNode(fileNode, container, depth + 1);
+                                });
+                        } else {
+                            // 빈 폴더 표시
+                            const emptyItem = document.createElement('div');
+                            emptyItem.className = 'folder-item';
+                            emptyItem.style.paddingLeft = ((depth + 1) * 16 + 4) + 'px';
+                            emptyItem.style.color = '#888';
+                            emptyItem.innerHTML = `
+                                <span class="folder-icon">📭</span>
+                                <span class="folder-name">(빈 폴더)</span>
+                            `;
+                            container.appendChild(emptyItem);
+                        }
                     }
                 }
             }
@@ -2823,15 +2859,19 @@
                 // 축소 버튼 상태
                 if (this.scale <= minScale) {
                     this.zoomOut.classList.add('disabled');
+                    this.zoomOut.title = '최소 배율입니다';
                 } else {
                     this.zoomOut.classList.remove('disabled');
+                    this.zoomOut.title = '축소 (Ctrl+-)';
                 }
                 
                 // 확대 버튼 상태
                 if (this.scale >= maxScale) {
                     this.zoomIn.classList.add('disabled');
+                    this.zoomIn.title = '최대 배율입니다';
                 } else {
                     this.zoomIn.classList.remove('disabled');
+                    this.zoomIn.title = '확대 (Ctrl++)';
                 }
             }
             
@@ -3643,6 +3683,18 @@
                             }
                         }
                         // 그 외에는 기본 스크롤 동작
+                        break;
+                    case 'i':
+                    case 'I':
+                        if (e.ctrlKey && !this.isCaptureMode) {
+                            e.preventDefault();
+                            // 문서 속성 창 토글
+                            if (this.propertiesModal.classList.contains('show')) {
+                                this.hideDocumentProperties();
+                            } else {
+                                this.showDocumentProperties();
+                            }
+                        }
                         break;
                     case 'c':
                     case 'C':
