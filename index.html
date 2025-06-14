@@ -241,6 +241,10 @@
             color: #5f6368 !important;
         }
 
+        body.light-theme .mobile-backdrop {
+            background: rgba(60, 64, 67, 0.7);
+        }
+
         /* 상단 툴바 */
         .toolbar {
             background: rgb(60, 60, 60);
@@ -252,44 +256,83 @@
             flex-shrink: 0;
             height: 63px;
             box-sizing: border-box;
-            z-index: 1000;
+            z-index: 1600; /* 사이드바보다 높은 z-index로 항상 접근 가능 */
+            position: relative; /* z-index가 작동하도록 position 추가 */
+            /* 화면이 좁을 때만 수평 스크롤 가능하도록 */
+            min-width: 600px; /* 기본 크기로 복원 */
+            overflow-x: auto;
+            overflow-y: hidden;
         }
 
         .toolbar-section {
             display: flex;
             align-items: center;
             gap: 12px;
+            flex-shrink: 0; /* 섹션들이 줄어들지 않도록 */
         }
 
         .toolbar-section.left {
             flex: 1;
             justify-content: flex-start;
+            min-width: 180px; /* 최소 너비 보장 */
+            /* max-width 제거로 중앙 정렬 복원 */
         }
 
         .toolbar-section.center {
             flex: 0 0 auto;
             justify-content: center;
+            min-width: 280px; /* 최소 너비 보장 */
         }
 
         .toolbar-section.right {
             flex: 1;
             justify-content: flex-end;
+            min-width: 100px; /* 최소 너비 보장 */
         }
 
         .toolbar-divider {
             color: #888;
             font-size: 14px;
             margin: 0 4px;
+            flex-shrink: 0;
         }
 
         .file-title {
             color: #fff;
             font-size: 14px;
             font-weight: bold;
-            max-width: 350px;
+            /* 화면 크기에 따라 동적으로 조정되는 max-width */
+            max-width: calc(100vw - 500px); /* 전체 화면에서 중앙 + 우측 영역 빼기 */
+            min-width: 100px; /* 최소 너비 보장 */
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        /* 화면 크기별 파일명 최대 너비 조정 */
+        @media (max-width: 1200px) {
+            .file-title {
+                max-width: calc(100vw - 450px);
+            }
+        }
+
+        @media (max-width: 1000px) {
+            .file-title {
+                max-width: calc(100vw - 400px);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .file-title {
+                max-width: 200px;
+            }
+        }
+
+        @media (max-width: 800px) {
+            .file-title {
+                max-width: 150px;
+            }
         }
 
         .fit-toggle-btn {
@@ -306,6 +349,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
         }
 
         .fit-toggle-btn:hover {
@@ -335,6 +379,7 @@
             display: flex;
             flex: 1;
             overflow: hidden;
+            position: relative;
         }
 
         /* 사이드바 */
@@ -348,6 +393,7 @@
             display: flex;
             flex-direction: row;
             position: relative;
+            z-index: 1500;
         }
 
         .sidebar.icon-panel-open {
@@ -364,6 +410,25 @@
 
         .sidebar.icon-panel-open.thumbnails-open.folder-open {
             width: 318px; /* 고정 크기 유지 */
+        }
+
+        /* 모바일 사이드바 오버레이 */
+        .mobile-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1400;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .mobile-backdrop.show {
+            display: block;
+            opacity: 1;
         }
 
         /* 아이콘 패널 */
@@ -659,6 +724,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
         }
 
         #propertiesBtn {
@@ -685,6 +751,7 @@
             color: #fff;
             background: rgb(30, 30, 30);
             transition: all 0.2s ease;
+            flex-shrink: 0;
         }
 
         #pageInput {
@@ -746,6 +813,7 @@
             -webkit-appearance: none;
             -moz-appearance: none;
             appearance: none;
+            flex-shrink: 0;
         }
 
         .zoom-select:hover {
@@ -767,6 +835,7 @@
             color: #ccc;
             font-size: 13px;
             margin: 0 6px;
+            flex-shrink: 0;
         }
 
         /* 업로드 영역 - 기본 다크모드 */
@@ -1169,24 +1238,35 @@
 
         /* 모바일 대응 */
         @media (max-width: 768px) {
+            /* 모바일에서 사이드바는 오버레이로 전체 화면 덮기 */
+            .sidebar {
+                position: fixed;
+                top: 63px; /* 툴바 높이만큼 떨어뜨리기 */
+                left: 0;
+                height: calc(100vh - 63px);
+                width: 0;
+                z-index: 1500;
+                transition: width 0.3s ease;
+            }
+            
             .sidebar.icon-panel-open {
-                width: 40px;
+                width: 100vw; /* 전체 화면 너비로 설정 */
             }
             
             .sidebar.icon-panel-open.thumbnails-open {
-                width: 250px; /* 폴더와 동일한 크기로 고정 */
+                width: 100vw;
             }
 
             .sidebar.icon-panel-open.folder-open {
-                width: 250px; /* 40px (아이콘) + 210px (폴더) */
+                width: 100vw;
             }
 
             .sidebar.icon-panel-open.thumbnails-open.folder-open {
-                width: 250px; /* 고정 크기 유지 */
+                width: 100vw;
             }
             
             .icon-panel {
-                width: 40px;
+                width: 48px;
                 z-index: 200;
                 pointer-events: auto;
             }
@@ -1199,12 +1279,12 @@
             }
             
             .thumbnails-section {
-                width: 210px;
+                width: calc(100vw - 48px); /* 아이콘 패널 제외한 나머지 전체 너비 */
                 padding-top: 8px;
             }
 
             .folder-section {
-                width: 210px;
+                width: calc(100vw - 48px); /* 아이콘 패널 제외한 나머지 전체 너비 */
                 padding: 6px;
             }
 
@@ -1221,6 +1301,15 @@
                 padding: 8px 12px;
                 gap: 10px;
                 height: 63px;
+                min-width: unset; /* 모바일에서는 min-width 제한 해제 */
+                /* 스크롤바 숨기기 */
+                scrollbar-width: none; /* Firefox */
+                -ms-overflow-style: none; /* IE and Edge */
+            }
+            
+            /* Webkit 브라우저에서 스크롤바 숨기기 */
+            .toolbar::-webkit-scrollbar {
+                display: none;
             }
             
             .toolbar-section {
@@ -1228,20 +1317,24 @@
             }
             
             .toolbar-section.left {
-                flex: 0.6;
+                flex: 1;
+                min-width: 140px;
+                /* max-width 제거로 중앙 정렬 유지 */
             }
             
             .toolbar-section.center {
-                flex: 1.8;
+                flex: 0 0 auto;
+                min-width: 200px;
             }
             
             .toolbar-section.right {
-                flex: 0.4;
+                flex: 1;
+                min-width: 80px;
             }
             
             .file-title {
-                max-width: 180px;
-                font-size: 12px;
+                max-width: 100px; /* 모바일에서 고정 크기 */
+                font-size: 11px;
             }
 
             .toolbar-btn, .fit-toggle-btn {
@@ -1300,10 +1393,18 @@
                 padding: 6px 16px;
                 font-size: 12px;
             }
+
+            /* 모바일에서 메인 콘텐츠가 사이드바에 밀리지 않도록 */
+            .main-content {
+                margin-left: 0;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- 모바일 백드롭 -->
+    <div class="mobile-backdrop" id="mobileBackdrop"></div>
+
     <!-- 상단 툴바 -->
     <div class="toolbar" id="toolbar" style="display: none;">
         <div class="toolbar-section left">
@@ -1371,9 +1472,9 @@
             <!-- 업로드 영역 -->
             <div class="upload-area" id="uploadArea">
                 <div class="upload-icon">📁</div>
-                <div class="upload-text">폴더를 선택하세요</div>
-                <button class="upload-btn">폴더 선택</button>
-                <div style="margin-top: 20px; text-align: center; color: #888; font-size: 14px; line-height: 1.6;">
+                <div class="upload-text" id="uploadText">폴더를 선택하세요</div>
+                <button class="upload-btn" id="uploadBtn">폴더 선택</button>
+                <div style="margin-top: 20px; text-align: center; color: #888; font-size: 14px; line-height: 1.6;" id="usageGuide">
                     <strong style="color: #ccc;">사용법:</strong><br>
                     <strong style="color: #4285f4;">• 폴더 선택:</strong> <strong>폴더 선택 버튼</strong>으로 폴더 선택 (모든 폴더 구조 표시, PDF 파일만 열기 가능)<br>
                     <strong style="color: #4285f4;">• 폴더 탐색기:</strong> <strong>📁 아이콘</strong>으로 선택된 폴더의 모든 폴더와 PDF 파일들 관리<br>
@@ -1481,22 +1582,108 @@
                 this.isThumbnailsOpen = false;
                 this.isFolderOpen = false;
                 this.currentSidebarType = 'thumbnails'; // 'thumbnails' or 'folder'
-                this.lastOpenedSidebarType = 'folder'; // 마지막에 열려있던 탭 기억
+                
+                // 모바일 감지
+                this.isMobile = this.detectMobile();
+                
+                // 모바일이면 썸네일, 데스크톱이면 폴더가 기본
+                this.lastOpenedSidebarType = this.isMobile ? 'thumbnails' : 'folder';
                 this.thumbnails = [];
                 this.folderStructure = null;
                 this.currentFolder = null;
                 this.selectedFile = null;
                 this.currentFolderName = null; // 폴더명 저장
                 
+                // 모바일 감지
+                this.isMobile = this.detectMobile();
+                
                 this.initElements();
                 this.initializeZoomSelect();
                 this.bindEvents();
+                this.setupMobileUI();
                 
                 // 초기 테마 설정
                 this.initializeTheme();
                 
                 // 초기 상태에서 썸네일 버튼 비활성화
                 this.thumbnailsBtn.disabled = true;
+            }
+
+            // 모바일 감지 함수
+            detectMobile() {
+                return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            }
+
+            // 모바일 UI 설정
+            setupMobileUI() {
+                if (this.isMobile) {
+                    // 모바일: 파일 선택 텍스트로 변경
+                    document.getElementById('uploadText').textContent = '파일을 선택하세요';
+                    document.getElementById('uploadBtn').textContent = '파일 선택';
+                    document.getElementById('folderTitle').textContent = '📁 파일 선택';
+                    document.getElementById('selectFolderBtn').textContent = '파일 선택';
+                    
+                    // 빈 영역 텍스트도 모바일용으로 변경
+                    const folderEmptyArea = document.getElementById('folderEmptyArea');
+                    if (folderEmptyArea) {
+                        folderEmptyArea.textContent = '📁 파일을 선택하거나 PDF 파일들을 여기로 드래그하세요';
+                    }
+                } else {
+                    // 데스크톱: 폴더 선택 텍스트로 변경
+                    document.getElementById('uploadText').textContent = '폴더를 선택하세요';
+                    document.getElementById('uploadBtn').textContent = '폴더 선택';
+                    document.getElementById('folderTitle').textContent = '📁 폴더 탐색기';
+                    document.getElementById('selectFolderBtn').textContent = '폴더 선택';
+                    
+                    // 빈 영역 텍스트도 데스크톱용으로 변경
+                    const folderEmptyArea = document.getElementById('folderEmptyArea');
+                    if (folderEmptyArea) {
+                        folderEmptyArea.textContent = '📁 폴더를 선택하거나 PDF 파일들을 여기로 드래그하세요';
+                    }
+                }
+                
+                // 공통 설정
+                if (this.isMobile) {
+                    // 사용법 가이드 텍스트 변경 (모바일)
+                    const usageGuide = document.getElementById('usageGuide');
+                    usageGuide.innerHTML = `
+                        <strong style="color: #ccc;">사용법:</strong><br>
+                        <strong style="color: #4285f4;">• 파일 선택:</strong> <strong>파일 선택 버튼</strong>으로 PDF 파일 선택<br>
+                        <strong style="color: #4285f4;">• 새 파일:</strong> <strong>📁 아이콘</strong>으로 새 파일 선택<br>
+                        <strong style="color: #4285f4;">• 페이지 썸네일:</strong> <strong>🖼️ 아이콘</strong>으로 페이지 썸네일 보기 및 빠른 이동<br>
+                        <strong style="color: #4285f4;">• 사이드바:</strong> <strong>☰ 버튼</strong>으로 사이드바 열기/닫기<br>
+                        <strong style="color: #4285f4;">• 텍스트 선택:</strong> PDF 내 텍스트를 터치로 선택 가능<br>
+                        <strong style="color: #4285f4;">• 확대/축소:</strong> 핀치 줌 또는 +/- 버튼 사용<br>
+                        <strong style="color: #4285f4;">• 페이지 이동:</strong> 좌우 스와이프 또는 화면 양쪽 끝 터치<br>
+                        <strong style="color: #4285f4;">• 영역 캡쳐:</strong> <strong>✂️ 버튼</strong>으로 원하는 영역 선택 후 클립보드 복사
+                    `;
+                    
+                    // 모바일 백드롭 이벤트 추가
+                    this.mobileBackdrop.addEventListener('click', () => {
+                        this.toggleIconPanel(); // 사이드바 닫기
+                    });
+                } else {
+                    // 데스크톱 사용법 가이드 복원
+                    const usageGuide = document.getElementById('usageGuide');
+                    usageGuide.innerHTML = `
+                        <strong style="color: #ccc;">사용법:</strong><br>
+                        <strong style="color: #4285f4;">• 폴더 선택:</strong> <strong>폴더 선택 버튼</strong>으로 폴더 선택 (모든 폴더 구조 표시, PDF 파일만 열기 가능)<br>
+                        <strong style="color: #4285f4;">• 폴더 탐색기:</strong> <strong>📁 아이콘</strong>으로 선택된 폴더의 모든 폴더와 PDF 파일들 관리<br>
+                        <strong style="color: #4285f4;">• 페이지 썸네일:</strong> <strong>🖼️ 아이콘</strong>으로 페이지 썸네일 보기 및 빠른 이동<br>
+                        <strong style="color: #4285f4;">• 문서 속성:</strong> <strong>⋮ 버튼</strong> 또는 <strong>Ctrl+I</strong>로 문서 정보 확인<br>
+                        <strong style="color: #4285f4;">• 테마 변경:</strong> <strong>🌙 버튼</strong>으로 다크모드/라이트모드/시스템 설정 순환<br>
+                        <strong style="color: #4285f4;">• 스마트 복사:</strong> <strong>Ctrl+C</strong>로 텍스트 선택 시 텍스트 복사, 미선택 시 이미지 복사<br>
+                        <strong style="color: #4285f4;">• 영역 캡쳐:</strong> <strong>✂️ 버튼</strong> 또는 <strong>Ctrl+Shift+X</strong>로 원하는 영역을 드래그하여 선택 후 클립보드 복사<br>
+                        <strong style="color: #4285f4;">• 사이드바 토글:</strong> <strong>☰ 버튼</strong> 또는 <strong>Ctrl+B</strong>로 사이드바 열기/닫기<br>
+                        <strong style="color: #4285f4;">• 스마트 전체 선택:</strong> <strong>Ctrl+A</strong>로 페이지 입력 필드 포커스 시 해당 필드만, 그 외엔 PDF 텍스트 전체 선택<br>
+                        <strong style="color: #4285f4;">• 텍스트 선택:</strong> PDF 내 텍스트를 마우스로 드래그해서 선택 가능<br>
+                        <strong style="color: #4285f4;">• 마우스 중심 확대:</strong> Ctrl+휠로 마우스 커서 중심 확대/축소<br>
+                        <strong style="color: #4285f4;">• 페이지 네비게이션:</strong> 화살표 키로 페이지 이동<br>
+                        <strong style="color: #4285f4;">• 맞춤 모드:</strong> ↕️/↔️ 버튼으로 페이지 맞춤과 너비 맞춤 토글<br>
+                        <strong style="color: #4285f4;">• ESC 키:</strong> 캡쳐 모드 종료 또는 사이드바 닫기<br>
+                        <strong style="color: #4285f4;">• 최적화 렌더링:</strong> 성능과 품질의 균형잡힌 표시
+                    `;
+                }
             }
 
             initializeZoomSelect() {
@@ -1553,6 +1740,7 @@
                 this.selectFolderBtn = document.getElementById('selectFolderBtn');
                 this.folderTree = document.getElementById('folderTree');
                 this.folderTitle = document.getElementById('folderTitle'); // 폴더 제목 요소 추가
+                this.mobileBackdrop = document.getElementById('mobileBackdrop'); // 모바일 백드롭
                 
                 // 캡쳐 관련 요소들
                 this.captureOverlay = document.getElementById('captureOverlay');
@@ -1571,8 +1759,15 @@
             }
 
             bindEvents() {
-                // 폴더 업로드 (기본 동작을 폴더 선택으로 변경)
-                this.uploadArea.addEventListener('click', () => this.folderInput.click());
+                // 모바일/데스크톱에 따른 파일 업로드 이벤트 분기
+                if (this.isMobile) {
+                    // 모바일: 파일 선택
+                    this.uploadArea.addEventListener('click', () => this.fileInput.click());
+                } else {
+                    // 데스크톱: 폴더 선택
+                    this.uploadArea.addEventListener('click', () => this.folderInput.click());
+                }
+                
                 this.fileInput.addEventListener('change', (e) => this.handleFile(e.target.files[0]));
                 
                 // 드래그 앤 드롭
@@ -1601,11 +1796,11 @@
                         return;
                     }
                     
-                    if (pdfFiles.length === 1) {
-                        // 단일 PDF 파일이면 바로 열기
+                    if (pdfFiles.length === 1 || this.isMobile) {
+                        // 단일 PDF 파일이거나 모바일이면 바로 열기
                         this.handleFile(pdfFiles[0]);
                     } else {
-                        // 여러 PDF 파일이면 폴더 구조로 만들어서 폴더 탐색기에 표시
+                        // 데스크톱에서 여러 PDF 파일이면 폴더 구조로 만들어서 폴더 탐색기에 표시
                         this.buildFolderStructureFromDroppedFiles(pdfFiles);
                         
                         // 폴더 선택 완료 메시지 표시
@@ -1636,12 +1831,35 @@
                 this.thumbnailsBtn.addEventListener('click', () => {
                     this.toggleThumbnails();
                 });
-                this.folderBtn.addEventListener('click', () => {
-                    this.toggleFolder();
-                });
-                this.selectFolderBtn.addEventListener('click', (e) => {
-                    this.openFolderDialog(e);
-                });
+                
+                // 모바일/데스크톱에 따른 폴더 버튼 이벤트 분기
+                if (this.isMobile) {
+                    // 모바일: 새 파일 선택
+                    this.folderBtn.title = '파일 선택';
+                    this.folderBtn.addEventListener('click', () => {
+                        this.fileInput.click();
+                        // 사이드바 닫기
+                        if (this.isIconPanelOpen) {
+                            this.toggleIconPanel();
+                        }
+                    });
+                    this.selectFolderBtn.addEventListener('click', (e) => {
+                        this.fileInput.click();
+                        if (this.isIconPanelOpen) {
+                            this.toggleIconPanel();
+                        }
+                    });
+                } else {
+                    // 데스크톱: 폴더 탐색기 토글
+                    this.folderBtn.title = '폴더 탐색기';
+                    this.folderBtn.addEventListener('click', () => {
+                        this.toggleFolder();
+                    });
+                    this.selectFolderBtn.addEventListener('click', (e) => {
+                        this.openFolderDialog(e);
+                    });
+                }
+                
                 this.folderInput.addEventListener('change', (e) => {
                     this.handleFolderSelect(e);
                 });
@@ -1678,7 +1896,14 @@
                 const initialEmptyArea = document.getElementById('folderEmptyArea');
                 if (initialEmptyArea) {
                     initialEmptyArea.addEventListener('click', (e) => {
-                        this.openFolderDialog(e);
+                        if (this.isMobile) {
+                            this.fileInput.click();
+                            if (this.isIconPanelOpen) {
+                                this.toggleIconPanel();
+                            }
+                        } else {
+                            this.openFolderDialog(e);
+                        }
                     });
                     
                     // 초기 빈 영역 드래그 앤 드롭 이벤트
@@ -1699,9 +1924,15 @@
                         const pdfFiles = files.filter(file => file.type === 'application/pdf');
                         
                         if (pdfFiles.length > 0) {
-                            this.buildFolderStructureFromDroppedFiles(pdfFiles);
-                            this.renderFolderTree();
-                            this.showToastMessage(`✅ ${pdfFiles.length}개의 PDF 파일을 추가했습니다`);
+                            if (this.isMobile && pdfFiles.length === 1) {
+                                // 모바일에서 단일 파일은 바로 열기
+                                this.handleFile(pdfFiles[0]);
+                            } else if (!this.isMobile) {
+                                // 데스크톱에서만 폴더 구조 생성
+                                this.buildFolderStructureFromDroppedFiles(pdfFiles);
+                                this.renderFolderTree();
+                                this.showToastMessage(`✅ ${pdfFiles.length}개의 PDF 파일을 추가했습니다`);
+                            }
                         } else {
                             this.showToastMessage('❌ PDF 파일만 드롭할 수 있습니다');
                         }
@@ -1740,7 +1971,22 @@
                 this.pdfContainer.addEventListener('wheel', (e) => this.handleWheel(e));
 
                 // 윈도우 리사이즈
-                window.addEventListener('resize', () => this.handleResize());
+                window.addEventListener('resize', () => {
+                    // 모바일 감지 업데이트
+                    const wasMobile = this.isMobile;
+                    this.isMobile = this.detectMobile();
+                    
+                    // 모바일 상태가 변경되었으면 UI 재설정
+                    if (wasMobile !== this.isMobile) {
+                        this.setupMobileUI();
+                        // 기본 사이드바 타입도 업데이트
+                        this.lastOpenedSidebarType = this.isMobile ? 'thumbnails' : 'folder';
+                        // 폴더 버튼 title 업데이트
+                        this.folderBtn.title = this.isMobile ? '파일 선택' : '폴더 탐색기';
+                    }
+                    
+                    this.handleResize();
+                });
                 
                 // 캡쳐 오버레이 이벤트
                 this.captureOverlay.addEventListener('mousedown', (e) => this.startSelection(e));
@@ -2052,22 +2298,45 @@
                 
                 if (this.isIconPanelOpen) {
                     this.sidebar.classList.add('icon-panel-open');
+                    
+                    // 모바일에서 백드롭 표시
+                    if (this.isMobile) {
+                        this.mobileBackdrop.classList.add('show');
+                    }
+                    
                     // 마지막에 열려있던 탭으로 복원
                     setTimeout(() => {
                         if (!this.isThumbnailsOpen && !this.isFolderOpen) {
-                            if (this.lastOpenedSidebarType === 'thumbnails') {
-                                this.openThumbnails();
-                                // 썸네일인 경우 현재 페이지 선택 상태 업데이트
-                                setTimeout(() => {
-                                    this.updateThumbnailSelection();
-                                }, 100);
+                            if (this.isMobile) {
+                                // 모바일에서는 무조건 썸네일 탭 열기 (PDF가 있을 때만)
+                                if (this.pdf) {
+                                    this.openThumbnails();
+                                    setTimeout(() => {
+                                        this.updateThumbnailSelection();
+                                    }, 100);
+                                }
                             } else {
-                                this.openFolder();
+                                // 데스크톱에서는 기존 로직 유지
+                                if (this.lastOpenedSidebarType === 'thumbnails') {
+                                    this.openThumbnails();
+                                    // 썸네일인 경우 현재 페이지 선택 상태 업데이트
+                                    setTimeout(() => {
+                                        this.updateThumbnailSelection();
+                                    }, 100);
+                                } else {
+                                    this.openFolder();
+                                }
                             }
                         }
                     }, 150); // 아이콘 패널 애니메이션 후 탭 복원
                 } else {
                     this.sidebar.classList.remove('icon-panel-open');
+                    
+                    // 모바일에서 백드롭 숨기기
+                    if (this.isMobile) {
+                        this.mobileBackdrop.classList.remove('show');
+                    }
+                    
                     // 현재 열려있는 탭을 기억
                     if (this.isThumbnailsOpen) {
                         this.lastOpenedSidebarType = 'thumbnails';
@@ -2079,10 +2348,12 @@
                     this.closeFolder();
                 }
                 
-                // 사이드바 변화에 따른 배율 재조정
-                setTimeout(() => {
-                    this.adjustScaleForSidebarChange();
-                }, 350); // 애니메이션 완료 후 조정
+                // 사이드바 변화에 따른 배율 재조정 (데스크톱만)
+                if (!this.isMobile) {
+                    setTimeout(() => {
+                        this.adjustScaleForSidebarChange();
+                    }, 350); // 애니메이션 완료 후 조정
+                }
             }
 
             // 썸네일 토글
@@ -2114,14 +2385,18 @@
                     this.updateThumbnailSelection();
                 }, 100); // 애니메이션 완료 후 업데이트
                 
-                // 썸네일 토글에 따른 배율 재조정
-                setTimeout(() => {
-                    this.adjustScaleForSidebarChange();
-                }, 350); // 애니메이션 완료 후 조정
+                // 썸네일 토글에 따른 배율 재조정 (데스크톱만)
+                if (!this.isMobile) {
+                    setTimeout(() => {
+                        this.adjustScaleForSidebarChange();
+                    }, 350); // 애니메이션 완료 후 조정
+                }
             }
 
-            // 폴더 탐색기 토글
+            // 폴더 탐색기 토글 (데스크톱만)
             toggleFolder() {
+                if (this.isMobile) return; // 모바일에서는 동작하지 않음
+                
                 if (!this.isIconPanelOpen) {
                     this.toggleIconPanel(); // 아이콘 패널이 닫혀있으면 먼저 열기
                     return;
@@ -2162,19 +2437,10 @@
                 this.folderBtn.classList.remove('active');
             }
 
-            // 폴더 선택 다이얼로그 열기 메서드 추가
-            openFolderDialog(event) {
-                console.log('폴더 선택 다이얼로그 열기');
-                // 이벤트 전파 방지
-                if (event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                this.folderInput.click();
-            }
-
-            // 폴더 선택 처리
+            // 폴더 선택 처리 (데스크톱만)
             async handleFolderSelect(event) {
+                if (this.isMobile) return; // 모바일에서는 처리하지 않음
+                
                 const files = Array.from(event.target.files);
                 if (files.length === 0) return;
 
@@ -2221,15 +2487,19 @@
 
             // 폴더 제목 업데이트 메서드 추가
             updateFolderTitle(folderName) {
-                if (folderName) {
+                if (this.isMobile) {
+                    this.folderTitle.textContent = '📁 파일 선택';
+                } else if (folderName) {
                     this.folderTitle.textContent = `📁 ${folderName}`;
                 } else {
                     this.folderTitle.textContent = '📁 폴더 탐색기';
                 }
             }
 
-            // 폴더 구조 생성 - 모든 폴더 표시, PDF 파일만 필터링
+            // 폴더 구조 생성 - 모든 폴더 표시, PDF 파일만 필터링 (데스크톱만)
             buildFolderStructure(files) {
+                if (this.isMobile) return; // 모바일에서는 처리하지 않음
+                
                 const structure = {
                     name: this.currentFolderName || '선택된 폴더',
                     type: 'folder',
@@ -2307,8 +2577,10 @@
                 console.log('최종 폴더 구조:', structure);
             }
 
-            // 드롭된 파일들로 폴더 구조 생성
+            // 드롭된 파일들로 폴더 구조 생성 (데스크톱만)
             buildFolderStructureFromDroppedFiles(files) {
+                if (this.isMobile) return; // 모바일에서는 처리하지 않음
+                
                 const structure = {
                     name: '드롭된 파일들',
                     type: 'folder',
@@ -2335,41 +2607,51 @@
             // 폴더 트리 렌더링 - 루트 폴더는 표시하지 않고 내용만 렌더링
             renderFolderTree() {
                 if (!this.folderStructure) {
-                    this.folderTree.innerHTML = '<div class="folder-empty" id="folderEmptyArea">📁 폴더를 선택하거나 PDF 파일들을 여기로 드래그하세요</div>';
+                    const emptyText = this.isMobile ? '📁 파일을 선택하거나 PDF 파일들을 여기로 드래그하세요' : '📁 폴더를 선택하거나 PDF 파일들을 여기로 드래그하세요';
+                    this.folderTree.innerHTML = `<div class="folder-empty" id="folderEmptyArea">${emptyText}</div>`;
                     
                     // 빈 영역 클릭 이벤트 추가
                     const emptyArea = document.getElementById('folderEmptyArea');
                     if (emptyArea) {
                         emptyArea.addEventListener('click', (e) => {
-                            this.openFolderDialog(e);
-                        });
-                        
-                        // 드래그 앤 드롭 이벤트 추가
-                        emptyArea.addEventListener('dragover', (e) => {
-                            e.preventDefault();
-                            emptyArea.classList.add('dragover');
-                        });
-                        
-                        emptyArea.addEventListener('dragleave', () => {
-                            emptyArea.classList.remove('dragover');
-                        });
-                        
-                        emptyArea.addEventListener('drop', (e) => {
-                            e.preventDefault();
-                            emptyArea.classList.remove('dragover');
-                            
-                            const files = Array.from(e.dataTransfer.files);
-                            const pdfFiles = files.filter(file => file.type === 'application/pdf');
-                            
-                            if (pdfFiles.length > 0) {
-                                // 가상의 폴더 구조 생성 (드롭된 파일들로)
-                                this.buildFolderStructureFromDroppedFiles(pdfFiles);
-                                this.renderFolderTree();
-                                this.showToastMessage(`✅ ${pdfFiles.length}개의 PDF 파일을 추가했습니다`);
+                            if (this.isMobile) {
+                                this.fileInput.click();
+                                if (this.isIconPanelOpen) {
+                                    this.toggleIconPanel();
+                                }
                             } else {
-                                this.showToastMessage('❌ PDF 파일만 드롭할 수 있습니다');
+                                this.openFolderDialog(e);
                             }
                         });
+                        
+                        // 드래그 앤 드롭 이벤트 추가 (데스크톱만)
+                        if (!this.isMobile) {
+                            emptyArea.addEventListener('dragover', (e) => {
+                                e.preventDefault();
+                                emptyArea.classList.add('dragover');
+                            });
+                            
+                            emptyArea.addEventListener('dragleave', () => {
+                                emptyArea.classList.remove('dragover');
+                            });
+                            
+                            emptyArea.addEventListener('drop', (e) => {
+                                e.preventDefault();
+                                emptyArea.classList.remove('dragover');
+                                
+                                const files = Array.from(e.dataTransfer.files);
+                                const pdfFiles = files.filter(file => file.type === 'application/pdf');
+                                
+                                if (pdfFiles.length > 0) {
+                                    // 가상의 폴더 구조 생성 (드롭된 파일들로)
+                                    this.buildFolderStructureFromDroppedFiles(pdfFiles);
+                                    this.renderFolderTree();
+                                    this.showToastMessage(`✅ ${pdfFiles.length}개의 PDF 파일을 추가했습니다`);
+                                } else {
+                                    this.showToastMessage('❌ PDF 파일만 드롭할 수 있습니다');
+                                }
+                            });
+                        }
                     }
                     return;
                 }
@@ -2482,6 +2764,11 @@
                     
                     // 브라우저 탭 제목도 파일명으로 업데이트
                     document.title = fileNode.name;
+                    
+                    // 모바일에서는 파일 선택 후 사이드바 닫기
+                    if (this.isMobile && this.isIconPanelOpen) {
+                        this.toggleIconPanel();
+                    }
                 });
 
                 container.appendChild(fileItem);
@@ -2515,9 +2802,9 @@
                 this.thumbnailsBtn.classList.remove('active');
             }
 
-            // 사이드바 변화에 따른 배율 재조정
+            // 사이드바 변화에 따른 배율 재조정 (데스크톱만)
             async adjustScaleForSidebarChange() {
-                if (!this.pdf || this.fitMode === 'none') return;
+                if (!this.pdf || this.fitMode === 'none' || this.isMobile) return;
                 
                 this.startZooming();
                 
@@ -3720,7 +4007,13 @@
                     thumbnailItem.appendChild(label);
                     
                     // 클릭 이벤트
-                    thumbnailItem.addEventListener('click', () => this.goToPageFromThumbnail(pageNum));
+                    thumbnailItem.addEventListener('click', () => {
+                        this.goToPageFromThumbnail(pageNum);
+                        // 모바일에서는 썸네일 클릭 후 사이드바 닫기
+                        if (this.isMobile && this.isIconPanelOpen) {
+                            this.toggleIconPanel();
+                        }
+                    });
                     
                     // 컨테이너에 추가
                     this.thumbnailsContainer.appendChild(thumbnailItem);
