@@ -1314,7 +1314,7 @@
             right: 0;
             bottom: 0;
             background: rgba(0, 0, 0, 0.7);
-            z-index: 9999; /* 높은 z-index로 모든 것 위에 표시 */
+            z-index: 15000; /* 높은 z-index로 모든 것 위에 표시 */
             display: none;
             align-items: center;
             justify-content: center;
@@ -1331,10 +1331,12 @@
         .thumbnail-window {
             background: rgb(50, 50, 50);
             border-radius: 12px;
-            max-width: 90vw;
-            max-height: 90vh;
-            width: 900px;
-            height: 700px;
+            width: 90vw; /* 반응형으로 변경 */
+            height: 85vh; /* 반응형으로 변경 */
+            max-width: 900px;
+            max-height: 700px;
+            min-width: 320px; /* 최소 크기 추가 */
+            min-height: 400px; /* 최소 높이 추가 */
             overflow: hidden;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
             transform: scale(0.8);
@@ -1901,7 +1903,7 @@
             right: 0;
             bottom: 0;
             background: rgba(0, 0, 0, 0.7);
-            z-index: 2000;
+            z-index: 15000;
             display: none;
             align-items: center;
             justify-content: center;
@@ -1918,15 +1920,19 @@
         .properties-dialog {
             background: rgb(41, 42, 45);
             border-radius: 8px;
-            padding: 24px;
+            padding: 0; /* 패딩 제거 */
+            width: 90vw;
             max-width: 500px;
-            min-width: 400px;
-            max-height: 80vh;
-            overflow-y: auto;
+            min-width: 320px;
+            height: 80vh; /* 고정 높이 설정 */
+            max-height: 600px; /* 최대 높이 제한 */
             color: #fff;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             transform: scale(0.8);
             transition: transform 0.3s ease;
+            display: flex; /* flexbox로 변경 */
+            flex-direction: column; /* 세로 배치 */
+            overflow: hidden; /* 전체 overflow 숨김 */
         }
 
         .properties-modal.show .properties-dialog {
@@ -1934,9 +1940,11 @@
         }
 
         .properties-header {
-            margin-bottom: 20px;
+            margin-bottom: 0; /* 기존 margin 제거 */
+            padding: 20px 24px; /* 패딩 추가 */
             padding-bottom: 12px;
             border-bottom: 1px solid #555;
+            flex-shrink: 0; /* 크기 고정 */
         }
 
         .properties-title {
@@ -1946,6 +1954,9 @@
         }
 
         .properties-content {
+            flex: 1; /* 남은 공간 차지 */
+            overflow-y: auto; /* 세로 스크롤만 */
+            padding: 20px 24px; /* 패딩 추가 */
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -1995,11 +2006,13 @@
         }
 
         .properties-footer {
-            margin-top: 20px;
+            margin-top: 0; /* 기존 margin 제거 */
+            padding: 12px 24px; /* 패딩 추가 */
             padding-top: 12px;
             border-top: 1px solid #555;
             display: flex;
             justify-content: flex-end;
+            flex-shrink: 0; /* 크기 고정 */
         }
 
         .properties-close-btn {
@@ -2290,12 +2303,14 @@
         /* 드롭다운 메뉴 z-index 최고 우선순위 */
         .dropdown-menu {
             position: fixed;
+            width: auto; /* 반응형으로 변경 */
             min-width: 200px;
+            max-width: 90vw; /* 최대 너비 제한 */
             background: rgb(50, 50, 50);
             border: 1px solid #666;
             border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            z-index: 999999999 !important; /* 매우 높은 우선순위 */
+            z-index: 999999999 !important;
             opacity: 0;
             transform: translateY(-10px) scale(0.95);
             transition: opacity 0.3s ease, transform 0.3s ease;
@@ -2462,7 +2477,7 @@
             right: 0;
             bottom: 0;
             background: rgba(0, 0, 0, 0.7);
-            z-index: 3000;
+            z-index: 15000;
             display: none;
             align-items: center;
             justify-content: center;
@@ -2480,8 +2495,9 @@
             background: rgb(41, 42, 45);
             border-radius: 8px;
             padding: 24px;
+            width: 90vw; /* 반응형으로 변경 */
             max-width: 400px;
-            min-width: 300px;
+            min-width: 320px; /* 최소 크기 조정 */
             color: #fff;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             transform: scale(0.8);
@@ -2566,7 +2582,7 @@
             right: 0;
             bottom: 0;
             background: rgba(0, 0, 0, 0.7);
-            z-index: 3000;
+            z-index: 15000;
             display: none;
             align-items: center;
             justify-content: center;
@@ -2850,7 +2866,6 @@
         <div class="help-dialog">
             <div class="help-header">
                 <h2 class="help-title">사용 방법</h2>
-                <button class="help-close-btn" id="helpCloseBtn">✕</button>
             </div>
             <div class="help-content" id="helpContent">
                 <!-- 내용은 JavaScript에서 동적으로 생성 -->
@@ -3050,16 +3065,8 @@
                 this.isDropdownOpen = true;
                 this.updateDropdownStates();
                 
-                // 버튼의 위치를 계산해서 드롭다운 위치 설정
                 const buttonRect = this.propertiesBtn.getBoundingClientRect();
                 
-                // 드롭다운을 body에 직접 추가 (기존 위치에서 제거)
-                if (this.dropdownMenu.parentNode !== document.body) {
-                    this.dropdownMenu.remove();
-                    document.body.appendChild(this.dropdownMenu);
-                }
-                
-                // 모바일에서는 특별한 위치 조정
                 if (this.isMobile) {
                     // 모바일에서는 화면 우측 상단에 고정 위치
                     const rightOffset = 8;
@@ -3068,41 +3075,39 @@
                     this.dropdownMenu.style.left = 'auto';
                     this.dropdownMenu.style.right = rightOffset + 'px';
                     this.dropdownMenu.style.top = topOffset + 'px';
-                    this.dropdownMenu.style.position = 'fixed';
-                    this.dropdownMenu.style.zIndex = '999999999'; // 최고 우선순위
                 } else {
-                    // 데스크톱에서는 기존 로직
+                    // 데스크톱에서는 기존 로직 + 화면 크기 체크
                     const rightOffset = 8;
                     const topOffset = 8;
+                    const menuWidth = Math.min(200, window.innerWidth * 0.9); // 화면의 90% 이하
                     
-                    let left = buttonRect.right - 200;
+                    let left = buttonRect.right - menuWidth;
                     let top = buttonRect.bottom + topOffset;
                     
+                    // 왼쪽 경계 체크
                     if (left < rightOffset) {
                         left = rightOffset;
                     }
                     
-                    if (left + 200 > window.innerWidth - rightOffset) {
-                        left = window.innerWidth - 200 - rightOffset;
+                    // 오른쪽 경계 체크
+                    if (left + menuWidth > window.innerWidth - rightOffset) {
+                        left = window.innerWidth - menuWidth - rightOffset;
                     }
                     
-                    if (top + 300 > window.innerHeight - 20) {
-                        top = buttonRect.top - 300 - topOffset;
+                    // 아래쪽 경계 체크 - 추정 높이 사용
+                    const estimatedMenuHeight = 300;
+                    if (top + estimatedMenuHeight > window.innerHeight - 20) {
+                        top = buttonRect.top - estimatedMenuHeight - topOffset;
                     }
                     
                     this.dropdownMenu.style.left = left + 'px';
                     this.dropdownMenu.style.right = 'auto';
                     this.dropdownMenu.style.top = top + 'px';
-                    this.dropdownMenu.style.position = 'fixed';
-                    this.dropdownMenu.style.zIndex = '999999999';
                 }
                 
                 this.dropdownMenu.style.visibility = 'visible';
-                
-                // 토스트 위치 조정
                 this.toastContainer.classList.add('dropdown-open');
                 
-                // 브라우저가 위치를 적용한 후 애니메이션 시작
                 requestAnimationFrame(() => {
                     this.dropdownMenu.classList.add('show');
                 });
@@ -3353,7 +3358,6 @@
                 // 기존 요소들 뒤에 추가
                 this.helpItem = document.getElementById('helpItem');
                 this.helpModal = document.getElementById('helpModal');
-                this.helpCloseBtn = document.getElementById('helpCloseBtn');
                 this.helpCloseBtnFooter = document.getElementById('helpCloseBtnFooter');
                 this.helpContent = document.getElementById('helpContent');
             }
@@ -3907,10 +3911,6 @@
                 this.helpItem.addEventListener('click', () => {
                     this.hideDropdown();
                     this.showHelpModal();
-                });
-
-                this.helpCloseBtn.addEventListener('click', () => {
-                    this.hideHelpModal();
                 });
 
                 this.helpCloseBtnFooter.addEventListener('click', () => {
