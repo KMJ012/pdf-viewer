@@ -273,10 +273,11 @@
             background: rgba(60, 64, 67, 0.7);
         }
 
+        /* 라이트 테마 지원 */
         body.light-theme .thumbnail-window {
             background: white;
             border: 1px solid #dadce0;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 clamp(5px, 2vw, 10px) clamp(15px, 4vw, 30px) rgba(0, 0, 0, 0.1);
         }
 
         body.light-theme .thumbnail-window-header {
@@ -289,15 +290,13 @@
             color: #202124;
         }
 
+        body.light-theme .thumbnail-window-select-toggle,
         body.light-theme .thumbnail-window-close {
             color: #5f6368;
         }
-        
-        body.light-theme .thumbnail-window-select-toggle {
-            color: #5f6368;
-        }
 
-        body.light-theme .thumbnail-window-select-toggle:hover {
+        body.light-theme .thumbnail-window-select-toggle:hover,
+        body.light-theme .thumbnail-window-close:hover {
             background: rgba(60, 64, 67, 0.08);
             color: #202124;
         }
@@ -305,11 +304,6 @@
         body.light-theme .thumbnail-window-select-toggle.active {
             background: #4285f4;
             color: #fff;
-        }
-
-        body.light-theme .thumbnail-window-close:hover {
-            background: rgba(60, 64, 67, 0.08);
-            color: #202124;
         }
 
         body.light-theme .thumbnail-window-grid .thumbnail-item {
@@ -340,21 +334,21 @@
             transform: translateY(-2px) !important;
         }
         
-        /* 선택된 축소판에 체크 아이콘 추가 (우상단) */
+        /* 선택된 축소판에 체크 아이콘 */
         .thumbnail-window-grid .thumbnail-item.selected::after {
             content: '✓';
             position: absolute;
-            top: 8px;
-            right: 8px;
+            top: clamp(6px, 1vw, 8px);
+            right: clamp(6px, 1vw, 8px);
             background: #4285f4;
             color: white;
-            width: 24px;
-            height: 24px;
+            width: clamp(20px, 3vw, 24px); /* 유동적 체크 아이콘 크기 */
+            height: clamp(20px, 3vw, 24px);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: clamp(12px, 2vw, 14px); /* 유동적 체크 폰트 */
             font-weight: bold;
             z-index: 10;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
@@ -601,16 +595,6 @@
             body:not(.mobile-device) .toolbar-section.center {
                 min-width: 200px;
             }
-            
-            body:not(.mobile-device) .zoom-select {
-                min-width: 60px;
-                font-size: 11px;
-            }
-            
-            body:not(.mobile-device) .toolbar-input {
-                min-width: 35px;
-                font-size: 11px;
-            }
         }
 
         /* 좁은 창 (768px 이하) */
@@ -672,6 +656,7 @@
 
         /* 모바일에서 사이드바는 툴바보다 낮게 */
         body.mobile-device .sidebar {
+            width: 0; /* 모바일에서는 기본적으로 숨김 */
             z-index: 1500 !important;
         }
 
@@ -775,6 +760,7 @@
 
         /* 모바일에서 드롭다운이 열릴 때 사이드바 숨기기 방지 */
         body.mobile-device .sidebar.icon-panel-open {
+            width: 100vw; /* 모바일에서는 전체 화면 */
             z-index: 1500; /* 드롭다운보다는 낮지만 유지 */
         }
 
@@ -795,9 +781,17 @@
         }
 
         body.mobile-device .icon-panel {
+            opacity: 0;
+            transform: translateX(-100%);
+            transition: all 0.3s ease;
             width: 48px;
             z-index: 200;
             pointer-events: auto;
+        }
+
+        body.mobile-device .sidebar.icon-panel-open .icon-panel {
+            opacity: 1;
+            transform: translateX(0);
         }
 
         body.mobile-device .icon-btn {
@@ -989,7 +983,7 @@
 
         /* 사이드바 */
         .sidebar {
-            width: 0;
+            width: 0; /* 기본적으로 숨김 */
             background: rgb(50, 50, 50);
             border-right: 1px solid #333;
             transition: width 0.3s ease;
@@ -999,6 +993,29 @@
             flex-direction: row;
             position: relative;
             z-index: 1500;
+        }
+        
+        .sidebar.thumbnails-open {
+            width: 318px; /* 썸네일 열림 */
+        }
+
+        /* 폴더만 열려있을 때 (아이콘 패널 없이) */
+        .sidebar.folder-open:not(.icon-panel-open) {
+            width: 270px; /* 폴더 섹션만 */
+        }
+
+        .sidebar.folder-open:not(.icon-panel-open) .icon-panel {
+            display: none; /* 아이콘 패널 완전 숨김 */
+        }
+
+        .sidebar.folder-open:not(.icon-panel-open) .folder-section {
+            display: block;
+            opacity: 1;
+            border-right: 1px solid #333; /* 오른쪽 테두리 추가 */
+        }
+
+        .sidebar.folder-open {
+            width: 318px; /* 폴더 열림 */
         }
 
         .sidebar.icon-panel-open {
@@ -1036,7 +1053,7 @@
             opacity: 1;
         }
 
-        /* 아이콘 패널 */
+        /* 아이콘 패널 - 기본적으로 숨김 */
         .icon-panel {
             width: 48px;
             background: rgb(45, 45, 45);
@@ -1046,8 +1063,8 @@
             align-items: center;
             padding: 8px 0;
             flex-shrink: 0;
-            opacity: 0;
-            transform: translateX(-100%);
+            opacity: 0; /* 기본적으로 숨김 */
+            transform: translateX(-100%); /* 기본적으로 숨김 */
             transition: all 0.3s ease;
             z-index: 200;
             pointer-events: auto;
@@ -1056,7 +1073,6 @@
         .sidebar.icon-panel-open .icon-panel {
             opacity: 1;
             transform: translateX(0);
-            pointer-events: auto;
         }
 
         .icon-btn {
@@ -1099,7 +1115,7 @@
             overflow-y: auto;
             padding: 16px;
             padding-top: 8px;
-            display: none;
+            display: none; /* 기본적으로 숨김 */
             opacity: 0;
             transition: opacity 0.3s ease;
         }
@@ -1330,15 +1346,11 @@
 
         .thumbnail-window {
             background: rgb(50, 50, 50);
-            border-radius: 12px;
-            width: 90vw; /* 반응형으로 변경 */
-            height: 85vh; /* 반응형으로 변경 */
-            max-width: 900px;
-            max-height: 700px;
-            min-width: 320px; /* 최소 크기 추가 */
-            min-height: 400px; /* 최소 높이 추가 */
+            border-radius: clamp(4px, 1vw, 12px); /* 화면 크기에 따라 둥글기 조정 */
+            width: clamp(280px, 90vw, 900px); /* 최소 280px, 최대 900px, 기본 90vw */
+            height: clamp(300px, 85vh, 700px); /* 최소 300px, 최대 700px, 기본 85vh */
             overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 clamp(10px, 3vw, 20px) clamp(30px, 8vw, 60px) rgba(0, 0, 0, 0.5);
             transform: scale(0.8);
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             display: flex;
@@ -1351,38 +1363,39 @@
 
         .thumbnail-window-header {
             background: rgb(60, 60, 60);
-            padding: 16px 20px;
+            padding: clamp(12px, 2vw, 16px) clamp(16px, 3vw, 20px); /* 유동적 패딩 */
             display: flex;
             align-items: center;
-            justify-content: space-between; /* 양쪽 정렬 */
+            justify-content: space-between;
             border-bottom: 1px solid #666;
             flex-shrink: 0;
-            position: relative; /* 중앙 정렬을 위해 추가 */
+            position: relative;
         }
 
         .thumbnail-window-title {
             color: #fff;
-            font-size: 16px;
+            font-size: clamp(14px, 2.5vw, 16px); /* 유동적 폰트 크기 */
             font-weight: bold;
-            position: absolute; /* 절대 위치로 중앙 정렬 */
+            position: absolute;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: clamp(6px, 1vw, 8px);
         }
         
-        .thumbnail-window-select-toggle {
+        .thumbnail-window-select-toggle,
+        .thumbnail-window-close {
             background: transparent;
             border: none;
             color: #ccc;
-            font-size: 18px;
+            font-size: clamp(16px, 2.5vw, 18px); /* 유동적 폰트 크기 */
             cursor: pointer;
-            padding: 8px;
-            border-radius: 50%; /* 동그라미 호버 */
+            padding: clamp(6px, 1vw, 8px);
+            border-radius: 50%;
             transition: all 0.2s ease;
-            width: 36px;
-            height: 36px;
+            width: clamp(32px, 5vw, 36px); /* 유동적 버튼 크기 */
+            height: clamp(32px, 5vw, 36px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1419,24 +1432,27 @@
             color: #fff;
         }
 
+        /* 축소판 창 내용 영역 */
         .thumbnail-window-content {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
+            padding: clamp(12px, 2vw, 20px); /* 유동적 패딩 */
         }
 
+        /* 축소판 그리드 */
         .thumbnail-window-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); /* 120px → 180px로 증가 */
-            gap: 16px;
+            grid-template-columns: repeat(auto-fill, minmax(clamp(100px, 15vw, 180px), 1fr)); /* 유동적 그리드 크기 */
+            gap: clamp(8px, 2vw, 16px); /* 유동적 간격 */
             align-items: start;
         }
 
+        /* 축소판 그리드 내 썸네일 아이템 */
         .thumbnail-window-grid .thumbnail-item {
             width: 100%;
             background: #444;
             border: 2px solid #666;
-            border-radius: 8px;
+            border-radius: clamp(4px, 1vw, 8px); /* 유동적 둥글기 */
             overflow: hidden;
             transition: all 0.2s ease;
             cursor: pointer;
@@ -1460,12 +1476,13 @@
             display: block;
         }
 
+        /* 축소판 라벨 */
         .thumbnail-window-grid .thumbnail-label {
             background: rgba(0, 0, 0, 0.9);
             color: white;
-            font-size: 11px;
+            font-size: clamp(10px, 1.5vw, 11px); /* 유동적 폰트 크기 */
             text-align: center;
-            padding: 6px;
+            padding: clamp(4px, 1vw, 6px); /* 유동적 패딩 */
             font-weight: 500;
         }
 
@@ -2231,7 +2248,7 @@
             position: fixed;
             top: 20px; /* 기본값: 툴바가 없을 때 */
             right: 20px;
-            z-index: 500; /* 1000에서 500으로 변경 */
+            z-index: 2000; /* 1000에서 500으로 변경 */
             pointer-events: none;
             transition: top 0.3s ease, right 0.3s ease; /* right 전환 추가 */
         }
@@ -2303,9 +2320,9 @@
         /* 드롭다운 메뉴 z-index 최고 우선순위 */
         .dropdown-menu {
             position: fixed;
-            width: auto; /* 반응형으로 변경 */
-            min-width: 200px;
-            max-width: 90vw; /* 최대 너비 제한 */
+            min-width: 160px;
+            max-width: min(300px, 90vw); /* 300px와 화면 90% 중 작은 값 */
+            max-height: min(400px, 80vh); /* 400px와 화면 80% 중 작은 값 */
             background: rgb(50, 50, 50);
             border: 1px solid #666;
             border-radius: 8px;
@@ -2315,8 +2332,10 @@
             transform: translateY(-10px) scale(0.95);
             transition: opacity 0.3s ease, transform 0.3s ease;
             pointer-events: none;
-            overflow: hidden;
+            overflow-y: auto; /* 내용이 많으면 스크롤 */
+            overflow-x: hidden;
             visibility: hidden;
+            transform-origin: top right; /* 우상단 기준으로 애니메이션 */
         }
 
         /* 드롭다운 메뉴 완전 격리 */
@@ -2328,32 +2347,32 @@
 
         /* PDF 관련 모든 요소들 z-index 최하위로 */
         .pdf-viewer {
-            z-index: -1 !important;
+            z-index: 1 !important;
             position: relative;
         }
 
         .pdf-container {
-            z-index: -1 !important;
+            z-index: 1 !important;
             position: relative;
         }
 
         .pdf-wrapper {
-            z-index: -1 !important;
+            z-index: 1 !important;
             position: relative;
         }
 
         .pdf-content {
-            z-index: -1 !important;
+            z-index: 1 !important;
             position: relative;
         }
 
         #pdfImage {
-            z-index: -1 !important;
+            z-index: 1 !important;
             position: relative;
         }
 
         .text-layer {
-            z-index: 0 !important; /* 텍스트 선택을 위해 이미지보다만 위에 */
+            z-index: 2 !important; /* 텍스트 선택을 위해 이미지보다만 위에 */
             position: absolute;
         }
 
@@ -2363,11 +2382,11 @@
         body.mobile-device .pdf-wrapper,
         body.mobile-device .pdf-content,
         body.mobile-device #pdfImage {
-            z-index: -10 !important;
+            z-index: 1 !important;
         }
 
         body.mobile-device .text-layer {
-            z-index: -5 !important;
+            z-index: 2 !important;
         }
 
         /* 모바일에서 추가 보장 */
@@ -2400,13 +2419,17 @@
         .dropdown-item {
             display: flex;
             align-items: center;
-            padding: 12px 16px;
+            padding: clamp(8px, 2vw, 12px) clamp(12px, 3vw, 16px); /* 화면 크기에 따라 유동적 패딩 */
             color: #fff;
-            font-size: 14px;
+            font-size: clamp(12px, 2.5vw, 14px); /* 화면 크기에 따라 유동적 폰트 */
             cursor: pointer;
             transition: background 0.2s ease;
             user-select: none;
             position: relative;
+            min-height: 36px; /* 최소 클릭 영역 보장 */
+            white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+            overflow: hidden;
+            text-overflow: ellipsis; /* 긴 텍스트는 ... 처리 */
         }
 
         .dropdown-item:hover {
@@ -2423,30 +2446,32 @@
         }
 
         .dropdown-item-icon {
-            width: 20px;
-            height: 20px;
-            margin-right: 12px;
+            width: clamp(16px, 3vw, 20px); /* 유동적 아이콘 크기 */
+            height: clamp(16px, 3vw, 20px);
+            margin-right: clamp(8px, 2vw, 12px); /* 유동적 마진 */
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
+            font-size: clamp(14px, 2.5vw, 16px); /* 유동적 아이콘 폰트 */
             flex-shrink: 0;
         }
 
         .dropdown-item-text {
             flex: 1;
+            min-width: 0; /* flexbox 텍스트 overflow 해결 */
         }
 
         .dropdown-item-toggle {
-            width: 20px;
-            height: 20px;
+            width: clamp(16px, 3vw, 20px);
+            height: clamp(16px, 3vw, 20px);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
+            font-size: clamp(14px, 2.5vw, 16px);
             color: #4285f4;
             opacity: 0;
             transition: opacity 0.2s ease;
+            flex-shrink: 0;
         }
 
         .dropdown-item.active .dropdown-item-toggle {
@@ -2701,6 +2726,8 @@
             <button class="toolbar-btn" id="zoomIn" title="확대 (Ctrl++)">+</button>
             <div class="toolbar-divider">|</div>
             <button class="toolbar-btn fit-toggle-btn" id="fitToggleBtn" title="페이지 맞춤 / 너비 맞춤 전환">↕️</button>
+            <!-- 축소판 버튼 추가 -->
+            <button class="toolbar-btn" id="toolbarThumbnailsBtn" title="축소판 창 (Ctrl+Q)" disabled>🪟</button>
             <button class="toolbar-btn" id="copyBtn" title="스마트 복사 (Ctrl+C)">📋</button>
             <button class="toolbar-btn" id="captureBtn" title="영역 캡쳐 (Ctrl+Shift+X)">✂️</button>
         </div>
@@ -3066,48 +3093,70 @@
                 this.updateDropdownStates();
                 
                 const buttonRect = this.propertiesBtn.getBoundingClientRect();
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                
+                // 드롭다운 예상 크기
+                const maxMenuWidth = Math.min(300, viewportWidth * 0.9);
+                const maxMenuHeight = Math.min(400, viewportHeight * 0.7);
+                
+                let transformOrigin = 'top right';
+                const verticalOffset = 8;
+                
+                // 세로 위치 계산 (공통)
+                let top = buttonRect.bottom + verticalOffset;
+                
+                // 아래로 벗어나면 버튼 위로
+                if (top + maxMenuHeight > viewportHeight - 20) {
+                    top = buttonRect.top - maxMenuHeight - verticalOffset;
+                    transformOrigin = 'bottom right';
+                }
+                
+                // 위로도 벗어나면 화면 내 최적 위치
+                if (top < 10) {
+                    top = Math.min(buttonRect.bottom + verticalOffset, viewportHeight - maxMenuHeight - 10);
+                    transformOrigin = 'top right';
+                }
                 
                 if (this.isMobile) {
-                    // 모바일에서는 화면 우측 상단에 고정 위치
+                    // 모바일: right 속성으로 우측 정렬
                     const rightOffset = 8;
-                    const topOffset = buttonRect.bottom + 8;
                     
                     this.dropdownMenu.style.left = 'auto';
                     this.dropdownMenu.style.right = rightOffset + 'px';
-                    this.dropdownMenu.style.top = topOffset + 'px';
+                    this.dropdownMenu.style.top = Math.max(10, top) + 'px';
+                    
                 } else {
-                    // 데스크톱에서는 기존 로직 + 화면 크기 체크
-                    const rightOffset = 8;
-                    const topOffset = 8;
-                    const menuWidth = Math.min(200, window.innerWidth * 0.9); // 화면의 90% 이하
+                    // 데스크톱: 버튼 오른쪽 끝에 드롭다운 오른쪽 끝 정렬
+                    const horizontalOffset = 8;
+                    let right = viewportWidth - buttonRect.right; // 화면 우측에서 버튼 오른쪽까지의 거리
                     
-                    let left = buttonRect.right - menuWidth;
-                    let top = buttonRect.bottom + topOffset;
-                    
-                    // 왼쪽 경계 체크
-                    if (left < rightOffset) {
-                        left = rightOffset;
+                    // 드롭다운이 화면 왼쪽으로 벗어나는지 체크
+                    const leftEdge = viewportWidth - right - maxMenuWidth;
+                    if (leftEdge < horizontalOffset) {
+                        // 왼쪽으로 벗어나면 right 값 조정
+                        right = viewportWidth - maxMenuWidth - horizontalOffset;
+                        transformOrigin = transformOrigin.replace('right', 'left');
                     }
                     
-                    // 오른쪽 경계 체크
-                    if (left + menuWidth > window.innerWidth - rightOffset) {
-                        left = window.innerWidth - menuWidth - rightOffset;
+                    // 오른쪽으로 벗어나는지 체크
+                    if (right < horizontalOffset) {
+                        right = horizontalOffset;
                     }
                     
-                    // 아래쪽 경계 체크 - 추정 높이 사용
-                    const estimatedMenuHeight = 300;
-                    if (top + estimatedMenuHeight > window.innerHeight - 20) {
-                        top = buttonRect.top - estimatedMenuHeight - topOffset;
-                    }
-                    
-                    this.dropdownMenu.style.left = left + 'px';
-                    this.dropdownMenu.style.right = 'auto';
-                    this.dropdownMenu.style.top = top + 'px';
+                    this.dropdownMenu.style.left = 'auto';
+                    this.dropdownMenu.style.right = right + 'px';
+                    this.dropdownMenu.style.top = Math.max(10, top) + 'px';
                 }
                 
+                // transform-origin 설정
+                this.dropdownMenu.style.transformOrigin = transformOrigin;
                 this.dropdownMenu.style.visibility = 'visible';
+                
+                // 토스트 위치 조정
                 this.toastContainer.classList.add('dropdown-open');
                 
+                // 애니메이션 시작
                 requestAnimationFrame(() => {
                     this.dropdownMenu.classList.add('show');
                 });
@@ -3360,6 +3409,9 @@
                 this.helpModal = document.getElementById('helpModal');
                 this.helpCloseBtnFooter = document.getElementById('helpCloseBtnFooter');
                 this.helpContent = document.getElementById('helpContent');
+
+                // 툴바 축소판 버튼 추가
+                this.toolbarThumbnailsBtn = document.getElementById('toolbarThumbnailsBtn');
             }
             
             // 모바일 디바이스 클래스 적용
@@ -3801,14 +3853,20 @@
                     }
                 });
 
+                // 툴바 축소판 창 버튼 - 항상 축소판 창
+                this.toolbarThumbnailsBtn.addEventListener('click', () => {
+                    this.openThumbnailWindowDirectly();
+                });
+
                 // 새로운 UI 이벤트들
                 // 사이드바 토글 이벤트 (이미 있는 코드 확인)
                 this.sidebarToggle.addEventListener('click', () => {
                     console.log('햄버거 버튼 클릭됨'); // 디버깅용
                     this.toggleIconPanel();
                 });
+
                 this.thumbnailsBtn.addEventListener('click', () => {
-                    this.toggleThumbnails();
+                    this.toggleThumbnails(); // 원래 기능으로 복원
                 });
                 
                 // 모바일/데스크톱에 따른 폴더 버튼 이벤트 분기
@@ -4468,7 +4526,7 @@
                 }
                 
                 // 커스텀 메시지가 있으면 그걸 사용, 없으면 기본 메시지
-                const message = customMessage || '📄 축소판 창이 닫혔습니다';
+                const message = customMessage || '🪟 축소판 창이 닫혔습니다';
                 this.showToastMessage(message);
             }
 
@@ -4536,6 +4594,23 @@
                         console.log('페이지 이동 완료, maintainPDFCenter 재활성화');
                     }, 300);
                 }
+            }
+
+            // 툴바/사이드바 축소판 버튼 공통 핸들러
+            handleThumbnailsButtonClick() {
+                // 축소판 버튼이 비활성화되어 있으면 동작하지 않음
+                if (this.toolbarThumbnailsBtn.disabled) {
+                    return;
+                }
+                
+                // 축소판 창이 이미 열려있으면 닫기
+                if (this.isThumbnailWindowOpen) {
+                    this.closeThumbnailWindow();
+                    return;
+                }
+                
+                // 축소판 창 열기
+                this.openThumbnailWindow();
             }
 
             async stabilizeLayoutAndScroll(scrollDirection = 'top') {
@@ -4732,6 +4807,24 @@
                 }
             }
             
+            // 툴바에서 축소판 창 직접 열기
+            openThumbnailWindowDirectly() {
+                // 축소판 버튼이 비활성화되어 있으면 동작하지 않음
+                if (this.toolbarThumbnailsBtn.disabled) {
+                    this.showToastMessage('📄 PDF를 먼저 로드해주세요');
+                    return;
+                }
+                
+                // 축소판 창이 이미 열려있으면 닫기
+                if (this.isThumbnailWindowOpen) {
+                    this.closeThumbnailWindow();
+                    return;
+                }
+                
+                // 축소판 창 바로 열기
+                this.openThumbnailWindow();
+            }
+
             // 범위 선택 함수
             selectRange(startPage, endPage) {
                 // 시작과 끝 페이지 정렬
@@ -4845,6 +4938,8 @@
                     // 브라우저 탭 제목도 파일명으로 업데이트
                     document.title = file.name;
                     
+                    // 폴더 상태 정리 후 PDF 뷰어 표시
+                    this.cleanupFolderOnlyState();
                     this.showPDFViewer();
                     
                     // 먼저 기본 스케일로 렌더링 (원본 크기 정보 획득)
@@ -4868,6 +4963,7 @@
                     
                     // PDF 로드 완료 시 썸네일 버튼 활성화
                     this.thumbnailsBtn.disabled = false;
+                    this.toolbarThumbnailsBtn.disabled = false;
                     
                 } catch (error) {
                     await this.showAlertModal('PDF 로드 실패', 'PDF 파일을 로드하는데 실패했습니다.\n\n오류: ' + error.message);
@@ -4877,11 +4973,28 @@
                 }
             }
 
+            // 폴더 전용 상태에서 PDF 뷰어로 전환 시 정리
+            cleanupFolderOnlyState() {
+                // 폴더 전용 클래스 제거
+                this.sidebar.classList.remove('folder-open');
+                this.isFolderOpen = false;
+            }
+
             showFolderSelectedMessage() {
                 this.uploadArea.style.display = 'none';
                 this.folderSelectedMessage.style.display = 'flex';
                 this.toolbar.style.display = 'none';
                 this.pdfViewer.style.display = 'none';
+                
+                // 아이콘 패널 숨기기 (모든 디바이스)
+                this.isIconPanelOpen = false;
+                this.sidebar.classList.remove('icon-panel-open');
+                
+                // 데스크톱에서만 폴더 내용 표시
+                if (!this.isMobile && this.folderStructure) {
+                    this.sidebar.classList.add('folder-open');
+                    this.isFolderOpen = true;
+                }
                 
                 // 제목을 기본값으로 되돌리기
                 document.title = 'PDF Viewer';
@@ -4896,13 +5009,30 @@
                 this.toolbar.style.display = 'flex';
                 this.pdfViewer.style.display = 'flex';
                 
+                // 사이드바 활성화
+                this.activateSidebar();
+                
                 // PDF 뷰어가 열릴 때 썸네일 버튼 활성화 확인
                 if (this.pdf) {
                     this.thumbnailsBtn.disabled = false;
+                    this.toolbarThumbnailsBtn.disabled = false;
                 }
                 
                 // 토스트 위치 업데이트 (툴바가 있으므로)
                 this.updateToastPosition(true);
+            }
+            
+            // 사이드바 활성화 함수 (PDF 로드 후)
+            activateSidebar() {
+                if (!this.isMobile) {
+                    this.isIconPanelOpen = true;
+                    this.sidebar.classList.add('icon-panel-open');
+                    
+                    // 폴더가 선택되어 있었다면 폴더 섹션 다시 열기
+                    if (this.folderStructure) {
+                        this.openFolder();
+                    }
+                }
             }
 
             // 햄버거 버튼 - 아이콘 패널 토글
@@ -4922,89 +5052,78 @@
                     this.closeThumbnailWindow();
                 }
                 
-                // 사이드바 토글 전 현재 중심점 저장
-                let centerRatio = 0;
-                if (!this.isMobile && this.pdf) {
-                    const container = this.pdfContainer;
-                    const currentCenterX = container.scrollLeft + (container.clientWidth / 2);
-                    const totalWidth = container.scrollWidth;
-                    centerRatio = totalWidth > 0 ? currentCenterX / totalWidth : 0.5;
-                }
-                
-                console.log('=== 사이드바 토글 전 ===');
-                console.log('main-layout 너비:', document.querySelector('.main-layout').getBoundingClientRect().width);
-                console.log('sidebar 너비:', this.sidebar.getBoundingClientRect().width);
-                console.log('main-content 너비:', this.mainContent.getBoundingClientRect().width);
-
-                this.isIconPanelOpen = !this.isIconPanelOpen;
-                
-                if (this.isIconPanelOpen) {
-                    this.sidebar.classList.add('icon-panel-open');
+                if (this.isMobile) {
+                    // 모바일: 기존 로직 유지 (전체 사이드바 토글)
+                    this.isIconPanelOpen = !this.isIconPanelOpen;
                     
-                    // 사이드바가 열리면 PDF 재조정
-                    if (!this.isMobile && this.pdf) {
-                        this.handleSidebarToggle();
-                    }
-                    
-                    // 모바일에서 백드롭 표시
-                    if (this.isMobile) {
+                    if (this.isIconPanelOpen) {
+                        this.sidebar.classList.add('icon-panel-open');
                         this.mobileBackdrop.classList.add('show');
-                    }
-                    
-                    // 마지막에 열려있던 탭으로 복원
-                    setTimeout(() => {
-                        if (!this.isThumbnailsOpen && !this.isFolderOpen) {
-                            if (this.isMobile) {
+                        
+                        // 마지막에 열려있던 탭으로 복원
+                        setTimeout(() => {
+                            if (!this.isThumbnailsOpen && !this.isFolderOpen) {
                                 if (this.pdf) {
                                     this.openThumbnails();
                                     setTimeout(() => {
                                         this.updateThumbnailSelection();
                                     }, 100);
                                 }
-                            } else {
-                                if (this.lastOpenedSidebarType === 'thumbnails') {
-                                    this.openThumbnails();
-                                    setTimeout(() => {
-                                        this.updateThumbnailSelection();
-                                    }, 100);
-                                } else {
-                                    this.openFolder();
-                                }
                             }
-                        }
-                    }, 150);
-                } else {
-                    this.sidebar.classList.remove('icon-panel-open');
-                    
-                    // 모바일에서 백드롭 숨기기
-                    if (this.isMobile) {
+                        }, 150);
+                        
+                        this.showToastMessage('📄 사이드바가 열렸습니다');
+                    } else {
+                        this.sidebar.classList.remove('icon-panel-open');
                         this.mobileBackdrop.classList.remove('show');
+                        this.closeThumbnails();
+                        this.closeFolder();
+                        
+                        this.showToastMessage('📄 사이드바가 닫혔습니다');
+                    }
+                } else {
+                    // 데스크톱: 개선된 로직
+                    if (this.isThumbnailsOpen || this.isFolderOpen) {
+                        // 뭔가 열려있으면 모두 닫기
+                        const wasThumbOpen = this.isThumbnailsOpen;
+                        const wasFolderOpen = this.isFolderOpen;
+                        
+                        this.closeThumbnails();
+                        this.closeFolder();
+                        
+                        // 단일 메시지로 통합
+                        if (wasThumbOpen && wasFolderOpen) {
+                            this.showToastMessage('📄 사이드바가 닫혔습니다');
+                        } else if (wasThumbOpen) {
+                            this.showToastMessage('🖼️ 축소판이 닫혔습니다');
+                        } else if (wasFolderOpen) {
+                            this.showToastMessage('📁 폴더 탐색기가 닫혔습니다');
+                        }
+                        
+                        // 메시지 중복 방지를 위해 여기서 함수 종료
+                        if (this.pdf) {
+                            this.handleSidebarToggle();
+                        }
+                        return;
+                    } else {
+                        // 아무것도 안 열려있으면 마지막 열었던 것 열기
+                        if (this.lastOpenedSidebarType === 'thumbnails') {
+                            this.openThumbnails();
+                            setTimeout(() => {
+                                this.updateThumbnailSelection();
+                            }, 100);
+                            this.showToastMessage('🖼️ 축소판이 열렸습니다');
+                        } else {
+                            this.openFolder();
+                            this.showToastMessage('📁 폴더 탐색기가 열렸습니다');
+                        }
                     }
                     
-                    // 현재 열려있는 탭을 기억
-                    if (this.isThumbnailsOpen) {
-                        this.lastOpenedSidebarType = 'thumbnails';
-                    } else if (this.isFolderOpen) {
-                        this.lastOpenedSidebarType = 'folder';
-                    }
-                    
-                    // 아이콘 패널이 닫히면 모든 섹션도 닫기
-                    this.closeThumbnails();
-                    this.closeFolder();
-                    
-                    // 사이드바가 닫히면 PDF 재조정
-                    if (!this.isMobile && this.pdf) {
+                    // 데스크톱에서 사이드바 변화 시 PDF 재조정
+                    if (this.pdf) {
                         this.handleSidebarToggle();
                     }
                 }
-
-                // 여기에 추가! (함수의 맨 끝 부분)
-                setTimeout(() => {
-                    console.log('=== 사이드바 토글 후 ===');
-                    console.log('main-layout 너비:', document.querySelector('.main-layout').getBoundingClientRect().width);
-                    console.log('sidebar 너비:', this.sidebar.getBoundingClientRect().width);
-                    console.log('main-content 너비:', this.mainContent.getBoundingClientRect().width);
-                }, 100);
             }
 
             // 썸네일 토글 - 개선된 버전
@@ -5019,7 +5138,7 @@
                     return;
                 }
                 
-                // 이미 썸네일이 열려있는 상태에서 다시 클릭하면 썸네일 창 열기
+                // 이미 썸네일이 열려있는 상태에서 다시 클릭하면 축소판 창 열기
                 if (this.isThumbnailsOpen) {
                     this.openThumbnailWindow();
                     return;
@@ -5032,48 +5151,44 @@
                 
                 // 썸네일 열기
                 this.openThumbnails();
+                this.showToastMessage('🖼️ 축소판이 열렸습니다');
                 
                 // 사이드바 변화 시 항상 재계산 (중앙 정렬 유지)
                 if (!this.isMobile) {
                     setTimeout(() => {
                         this.adjustScaleForSidebarChange();
-                    }, 100); // 썸네일 열기 애니메이션 중간에 재계산
+                    }, 100);
                 }
                 
                 // 썸네일을 열 때 현재 페이지 선택 상태 업데이트
                 setTimeout(() => {
                     this.updateThumbnailSelection();
-                }, 100); // 애니메이션 완료 후 업데이트
+                }, 100);
             }
 
             // 폴더 탐색기 토글 (데스크톱만)
             toggleFolder() {
-                if (this.isMobile) return; // 모바일에서는 동작하지 않음
+                if (this.isMobile) return;
                 
-                if (!this.isIconPanelOpen) {
-                    this.toggleIconPanel(); // 아이콘 패널이 닫혀있으면 먼저 열기
-                    return;
-                }
-                
-                // 폴더가 이미 열려있으면 아무것도 하지 않음
                 if (this.isFolderOpen) {
-                    return;
+                    // 이미 열려있으면 닫기
+                    this.closeFolder();
+                    this.showToastMessage('📁 폴더 탐색기가 닫혔습니다');
+                } else {
+                    // 썸네일이 열려있으면 닫기
+                    if (this.isThumbnailsOpen) {
+                        this.closeThumbnails();
+                    }
+                    
+                    // 폴더 열기
+                    this.openFolder();
+                    this.showToastMessage('📁 폴더 탐색기가 열렸습니다');
                 }
                 
-                // 다른 섹션이 열려있으면 닫기
-                if (this.isThumbnailsOpen) {
-                    this.closeThumbnails();
-                }
-                
-                // 폴더 탐색기 열기
-                this.openFolder();
-                
-                // 사이드바 변화 시 항상 재계산 (중앙 정렬 유지)
-                if (!this.isMobile) {
-                    setTimeout(() => {
-                        this.adjustScaleForSidebarChange();
-                    }, 100); // 폴더 열기 애니메이션 중간에 재계산
-                }
+                // 사이드바 변화 처리
+                setTimeout(() => {
+                    this.adjustScaleForSidebarChange();
+                }, 100);
             }
 
             // 폴더 탐색기 열기
@@ -6483,23 +6598,38 @@
                 this.updateThumbnailButtonState();
             }
             
-            // 썸네일 버튼 상태 업데이트
+            // 썸네일 버튼 상태 업데이트 (기존 함수 수정)
             updateThumbnailButtonState() {
+                const isDisabled = !this.pdf || this.thumbnails.length === 0;
+                
+                // 툴바 축소판 창 버튼 상태 (항상 창 아이콘)
+                this.toolbarThumbnailsBtn.disabled = isDisabled;
+                this.toolbarThumbnailsBtn.textContent = '🪟';
+                
                 if (this.isThumbnailWindowOpen) {
-                    // 썸네일 창이 열려있는 상태
-                    this.thumbnailsBtn.textContent = '🪟';
-                    this.thumbnailsBtn.title = '축소판 창 (열림) - Ctrl+Q로 닫기';
+                    this.toolbarThumbnailsBtn.title = '축소판 창 (열림) - Ctrl+Q로 닫기';
                 } else {
-                    // 썸네일 창이 닫혀있는 상태 - 사이드바 상태와 관계없이 기본 아이콘으로
+                    this.toolbarThumbnailsBtn.title = '축소판 창 (Ctrl+Q)';
+                }
+                
+                // 사이드바 썸네일 버튼 상태 (원래 로직)
+                this.thumbnailsBtn.disabled = isDisabled;
+                
+                if (this.isThumbnailWindowOpen) {
+                    // 축소판 창이 열려있는 상태
+                    this.thumbnailsBtn.textContent = '🪟';
+                    this.thumbnailsBtn.title = '축소판 창 (열림)';
+                } else {
+                    // 축소판 창이 닫혀있는 상태
                     this.thumbnailsBtn.textContent = '🖼️';
                     if (this.isThumbnailsOpen) {
-                        this.thumbnailsBtn.title = '축소판 창 열기 (Ctrl+Q)';
+                        this.thumbnailsBtn.title = '축소판 창 열기';
                     } else {
                         this.thumbnailsBtn.title = '페이지 썸네일';
                     }
                 }
             }
-            
+
             updateZoomButtonStates() {
                 // 최소/최대 스케일 체크
                 const minScale = 0.25;
@@ -6525,56 +6655,30 @@
             }
             
             updatePageInputWidth() {
-                // 전체 페이지 수의 자릿수 계산
+                // 전체 페이지 수의 자릿수에 따라서만 조정 (창 크기 무관)
                 const digits = this.totalPages.toString().length;
                 
-                // 모바일 여부 체크
-                const isMobile = window.innerWidth <= 768;
+                // 고정된 크기 계산 (모바일/데스크톱 구분 없이)
+                const baseWidth = 16;
+                const charWidth = 8;
+                const calculatedWidth = baseWidth + (digits * charWidth);
+                const minWidth = 40; // 최소 크기 조금 늘림
+                const maxWidth = 80;
+                const finalWidth = Math.max(minWidth, Math.min(maxWidth, calculatedWidth));
                 
-                if (isMobile) {
-                    // 모바일: 더 작은 크기
-                    const baseWidth = 12;
-                    const charWidth = 7;
-                    const calculatedWidth = baseWidth + (digits * charWidth);
-                    const minWidth = 30;
-                    const maxWidth = 60;
-                    const finalWidth = Math.max(minWidth, Math.min(maxWidth, calculatedWidth));
-                    this.pageInput.style.width = finalWidth + 'px';
-                } else {
-                    // 데스크톱: 기본 크기
-                    const baseWidth = 16;
-                    const charWidth = 8;
-                    const calculatedWidth = baseWidth + (digits * charWidth);
-                    const minWidth = 35;
-                    const maxWidth = 80;
-                    const finalWidth = Math.max(minWidth, Math.min(maxWidth, calculatedWidth));
-                    this.pageInput.style.width = finalWidth + 'px';
-                }
+                this.pageInput.style.width = finalWidth + 'px';
             }
             
             updateZoomSelectWidth() {
-                // 모바일 여부 체크
-                const isMobile = window.innerWidth <= 768;
+                // 고정된 크기 (창 크기 무관)
+                const baseWidth = 16;
+                const textWidth = 24;
+                const percentWidth = 8;
+                const arrowWidth = 12;
+                const finalWidth = baseWidth + textWidth + percentWidth + arrowWidth;
                 
-                if (isMobile) {
-                    // 모바일: 더 작은 크기
-                    const baseWidth = 12;
-                    const textWidth = 20;
-                    const percentWidth = 7;
-                    const arrowWidth = 10;
-                    const finalWidth = baseWidth + textWidth + percentWidth + arrowWidth;
-                    this.zoomSelect.style.minWidth = finalWidth + 'px';
-                    this.zoomSelect.style.width = finalWidth + 'px';
-                } else {
-                    // 데스크톱: 기본 크기
-                    const baseWidth = 16;
-                    const textWidth = 24;
-                    const percentWidth = 8;
-                    const arrowWidth = 12;
-                    const finalWidth = baseWidth + textWidth + percentWidth + arrowWidth;
-                    this.zoomSelect.style.minWidth = finalWidth + 'px';
-                    this.zoomSelect.style.width = finalWidth + 'px';
-                }
+                this.zoomSelect.style.minWidth = finalWidth + 'px';
+                this.zoomSelect.style.width = finalWidth + 'px';
             }
 
             updateZoomSelect(currentZoom) {
@@ -8220,10 +8324,10 @@
                             break;
                         case 'q':
                         case 'Q':
-                            // Ctrl+Q: 썸네일 창 닫기
-                            if (e.ctrlKey) {
+                            if (e.ctrlKey && !this.isCaptureMode) {
                                 e.preventDefault();
-                                this.closeThumbnailWindow();
+                                // 툴바 축소판 창 버튼 기능 사용
+                                this.openThumbnailWindowDirectly();
                             }
                             break;
                         case 'c':
@@ -8279,8 +8383,7 @@
                         if (e.ctrlKey && !this.isCaptureMode) {
                             e.preventDefault();
                             this.toggleIconPanel();
-                            const message = this.isIconPanelOpen ? '📄 사이드바가 열렸습니다' : '📄 사이드바가 닫혔습니다';
-                            this.showToastMessage(message);
+                            // 메시지 출력 코드 제거 - toggleIconPanel() 내부에서 이미 처리함
                         }
                         break;
                     case 'q':
