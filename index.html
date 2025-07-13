@@ -2283,6 +2283,18 @@
         }
 
         /* 모바일에서 드롭다운 메뉴 추가 스타일 */
+        body.mobile-device .pdf-viewer,
+        body.mobile-device .pdf-container,
+        body.mobile-device .pdf-wrapper,
+        body.mobile-device .pdf-content,
+        body.mobile-device #pdfImage {
+            z-index: -10 !important;
+        }
+
+        body.mobile-device .text-layer {
+            z-index: -5 !important;
+        }
+
         body.mobile-device .dropdown-menu {
             z-index: 9999999 !important; /* 모바일에서 더 높은 우선순위 */
             position: fixed !important;
