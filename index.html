@@ -165,7 +165,7 @@
         }
 
         body.light-theme .pdf-container {
-            background: rgb(245, 245, 245);
+            background: rgb(245, 245, 245) !important;
         }
 
         body.light-theme .loading {
@@ -663,6 +663,26 @@
             -ms-overflow-style: none;
             z-index: 99999 !important;
             position: relative;
+        }
+
+        /* 모바일에서 툴바 최상위 */
+        body.mobile-device .toolbar {
+            z-index: 999999 !important;
+            position: relative !important;
+        }
+
+        body.mobile-device .toolbar * {
+            z-index: 999999 !important;
+            position: relative !important;
+        }
+
+        /* 모바일에서 사이드바는 툴바보다 낮게 */
+        body.mobile-device .sidebar {
+            z-index: 1500 !important;
+        }
+
+        body.mobile-device .mobile-backdrop {
+            z-index: 1400 !important;
         }
 
         body.mobile-device .toolbar::-webkit-scrollbar {
@@ -1738,6 +1758,12 @@
             width: 100%; /* 추가 */
             height: 100%; /* 추가 */
         }
+        
+        /* PDF 컨테이너 배경색 테마별 설정 */
+        .pdf-container {
+            background: rgb(40, 40, 40) !important;
+            transition: background-color 0.4s ease !important;
+        }
 
         .pdf-container.fit-page {
             overflow: hidden; /* 페이지 맞춤 모드에서는 스크롤 완전 금지 */
@@ -2265,7 +2291,7 @@
             display: inline-block;
         }
 
-        /* 드롭다운 메뉴 z-index 수정 */
+        /* 드롭다운 메뉴 z-index 최고 우선순위 */
         .dropdown-menu {
             position: fixed;
             min-width: 200px;
@@ -2273,13 +2299,44 @@
             border: 1px solid #666;
             border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            z-index: 999999; /* 가장 높은 우선순위 */
+            z-index: 999999999 !important; /* 매우 높은 우선순위 */
             opacity: 0;
             transform: translateY(-10px) scale(0.95);
             transition: opacity 0.3s ease, transform 0.3s ease;
             pointer-events: none;
             overflow: hidden;
             visibility: hidden;
+        }
+
+        /* PDF 관련 모든 요소들 z-index 최하위로 */
+        .pdf-viewer {
+            z-index: -1 !important;
+            position: relative;
+        }
+
+        .pdf-container {
+            z-index: -1 !important;
+            position: relative;
+        }
+
+        .pdf-wrapper {
+            z-index: -1 !important;
+            position: relative;
+        }
+
+        .pdf-content {
+            z-index: -1 !important;
+            position: relative;
+        }
+
+        #pdfImage {
+            z-index: -1 !important;
+            position: relative;
+        }
+
+        .text-layer {
+            z-index: 0 !important; /* 텍스트 선택을 위해 이미지보다만 위에 */
+            position: absolute;
         }
 
         /* 모바일에서 드롭다운 메뉴 추가 스타일 */
@@ -2295,21 +2352,22 @@
             z-index: -5 !important;
         }
 
+        /* 모바일에서 드롭다운 더 강화 */
         body.mobile-device .dropdown-menu {
-            z-index: 9999999 !important; /* 모바일에서 더 높은 우선순위 */
+            z-index: 9999999999 !important;
             position: fixed !important;
         }
 
-        /* 라이트 테마 드롭다운 z-index */
+        /* 라이트 테마 드롭다운 */
         body.light-theme .dropdown-menu {
             background: white;
             border: 1px solid #dadce0;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            z-index: 999999;
+            z-index: 999999999 !important;
         }
 
         body.light-theme.mobile-device .dropdown-menu {
-            z-index: 9999999 !important;
+            z-index: 9999999999 !important;
         }
 
         .dropdown-menu.show {
@@ -2713,7 +2771,7 @@
                 <button class="upload-btn" id="uploadBtn">폴더 선택</button>
                 <div style="margin-top: 20px; text-align: center; color: #888; font-size: 14px; line-height: 1.6;" id="usageGuide">
                     <strong style="color: #ccc;">시작하기:</strong><br>
-                    <strong style="color: #4285f4;">• 데스크톱:</strong> <strong>폴더 선택 버튼</strong>으로 PDF 파일들이 있는 폴더를 선택하세요<br>
+                    <strong style="color: #4285f4;">• 데스크톱1:</strong> <strong>폴더 선택 버튼</strong>으로 PDF 파일들이 있는 폴더를 선택하세요<br>
                     <strong style="color: #4285f4;">• 모바일:</strong> <strong>파일 선택 버튼</strong>으로 개별 PDF 파일을 선택하세요<br>
                     <strong style="color: #4285f4;">• 드래그 앤 드롭:</strong> PDF 파일들을 직접 끌어다 놓으세요
                 </div>
