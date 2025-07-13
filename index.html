@@ -525,7 +525,7 @@
             background: #e1e5e9;
         }
 
-        /* 상단 툴바 */
+        /* 상단 툴바 z-index 강화 */
         .toolbar {
             background: rgb(60, 60, 60);
             border-bottom: 1px solid #333;
@@ -536,10 +536,9 @@
             flex-shrink: 0;
             height: 63px;
             box-sizing: border-box;
-            z-index: 1000; /* 드롭다운보다 살짝 낮게 설정 */
-            position: relative; /* z-index가 작동하도록 position 추가 */
-            /* 화면이 좁을 때만 수평 스크롤 가능하도록 */
-            min-width: 600px; /* 기본 크기로 복원 */
+            z-index: 10000 !important; /* 강력한 우선순위 */
+            position: relative !important;
+            min-width: 600px;
             overflow-x: auto;
             overflow-y: hidden;
         }
@@ -646,6 +645,11 @@
         }
 
         /* ===== 실제 모바일 디바이스에서만 적용되는 스타일 ===== */
+        body.mobile-device #sidebarToggle,
+        body.mobile-device .toolbar-btn {
+            z-index: 99999 !important;
+            position: relative !important;
+        }
 
         /* 툴바 스타일 */
         body.mobile-device .toolbar {
@@ -657,6 +661,8 @@
             overflow-y: hidden;
             scrollbar-width: none;
             -ms-overflow-style: none;
+            z-index: 99999 !important;
+            position: relative;
         }
 
         body.mobile-device .toolbar::-webkit-scrollbar {
@@ -664,37 +670,48 @@
         }
 
         body.mobile-device .toolbar-section {
-            gap: 6px;
+            gap: 8px;
+            flex-shrink: 0;
         }
 
         body.mobile-device .toolbar-section.left {
-            flex: 1;
-            min-width: 0;
+            flex: 1 1 auto;
+            min-width: 120px;
+            max-width: 200px;
+            justify-content: flex-start;
         }
 
         body.mobile-device .toolbar-section.center {
             flex: 0 0 auto;
-            min-width: 220px;
+            min-width: 280px;
+            justify-content: center;
         }
 
         body.mobile-device .toolbar-section.right {
-            flex: 1;
-            min-width: 80px;
+            flex: 0 0 auto;
+            min-width: 100px;
+            justify-content: flex-end;
         }
 
         body.mobile-device .file-title {
             max-width: 100px;
             font-size: 11px;
             margin-left: 8px;
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
-        /* 버튼 스타일 */
-        body.mobile-device .toolbar-btn, 
+        body.mobile-device .toolbar-btn,
         body.mobile-device .fit-toggle-btn {
             width: 32px;
             height: 32px;
             font-size: 14px;
             padding: 6px;
+            z-index: 99999 !important;
+            position: relative !important;
         }
 
         body.mobile-device #propertiesBtn {
@@ -718,14 +735,33 @@
         }
 
         /* 사이드바 스타일 */
+        /* 모바일 사이드바 z-index 조정 */
         body.mobile-device .sidebar {
             position: fixed;
             top: 63px;
             left: 0;
             height: calc(100vh - 63px);
             width: 0;
-            z-index: 1500;
+            z-index: 1500; /* 드롭다운보다 낮게 유지 */
             transition: width 0.3s ease;
+        }
+
+        body.mobile-device .mobile-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1400; /* 드롭다운보다 낮게 유지 */
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* 모바일에서 드롭다운이 열릴 때 사이드바 숨기기 방지 */
+        body.mobile-device .sidebar.icon-panel-open {
+            z-index: 1500; /* 드롭다운보다는 낮지만 유지 */
         }
 
         body.mobile-device .sidebar.icon-panel-open {
@@ -868,6 +904,25 @@
         body.mobile-device .help-section li {
             font-size: 14px;
             margin-bottom: 6px;
+        }
+
+        body.mobile-device #sidebarToggle {
+            width: 32px !important;
+            height: 32px !important;
+            font-size: 16px !important;
+            z-index: 99999 !important;
+            position: relative !important;
+            display: flex !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+        }
+
+        /* 모바일에서 툴바 버튼들이 숨겨지지 않도록 */
+        body.mobile-device .toolbar-btn {
+            display: flex !important;
+            opacity: 1 !important;
+            visibility: visible !important;
         }
 
         .fit-toggle-btn {
@@ -2210,6 +2265,7 @@
             display: inline-block;
         }
 
+        /* 드롭다운 메뉴 z-index 수정 */
         .dropdown-menu {
             position: fixed;
             min-width: 200px;
@@ -2217,14 +2273,31 @@
             border: 1px solid #666;
             border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            z-index: 999999;
+            z-index: 999999; /* 가장 높은 우선순위 */
             opacity: 0;
             transform: translateY(-10px) scale(0.95);
-            transition: opacity 0.3s ease, transform 0.3s ease; /* 개선된 애니메이션 */
+            transition: opacity 0.3s ease, transform 0.3s ease;
             pointer-events: none;
             overflow: hidden;
-            /* 위치는 JavaScript에서 동적으로 설정 */
-            visibility: hidden; /* 추가: 초기에는 완전히 숨김 */
+            visibility: hidden;
+        }
+
+        /* 모바일에서 드롭다운 메뉴 추가 스타일 */
+        body.mobile-device .dropdown-menu {
+            z-index: 9999999 !important; /* 모바일에서 더 높은 우선순위 */
+            position: fixed !important;
+        }
+
+        /* 라이트 테마 드롭다운 z-index */
+        body.light-theme .dropdown-menu {
+            background: white;
+            border: 1px solid #dadce0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 999999;
+        }
+
+        body.light-theme.mobile-device .dropdown-menu {
+            z-index: 9999999 !important;
         }
 
         .dropdown-menu.show {
@@ -2499,6 +2572,19 @@
         body.light-theme .alert-message {
             color: #5f6368;
             white-space: pre-line;
+        }
+
+        /* PDF 관련 요소들만 낮은 z-index */
+        .pdf-viewer,
+        .pdf-container,
+        .pdf-wrapper,
+        .pdf-content,
+        #pdfImage {
+            z-index: 1;
+        }
+
+        .text-layer {
+            z-index: 2; /* 텍스트 선택용 */
         }
     </style>
 </head>
@@ -2892,35 +2978,45 @@
                 // 버튼의 위치를 계산해서 드롭다운 위치 설정
                 const buttonRect = this.propertiesBtn.getBoundingClientRect();
                 
-                // 화면 우측에서 8px 떨어진 위치에 배치
-                const rightOffset = 8;
-                const topOffset = 8;
-                
-                // 드롭다운이 화면을 벗어나지 않도록 조정
-                let left = buttonRect.right - 200; // 드롭다운 너비만큼 왼쪽으로
-                let top = buttonRect.bottom + topOffset;
-                
-                // 화면 왼쪽 경계 확인
-                if (left < rightOffset) {
-                    left = rightOffset;
+                // 모바일에서는 특별한 위치 조정
+                if (this.isMobile) {
+                    // 모바일에서는 화면 우측 상단에 고정 위치
+                    const rightOffset = 8;
+                    const topOffset = buttonRect.bottom + 8;
+                    
+                    this.dropdownMenu.style.left = 'auto';
+                    this.dropdownMenu.style.right = rightOffset + 'px';
+                    this.dropdownMenu.style.top = topOffset + 'px';
+                    this.dropdownMenu.style.zIndex = '9999999'; // 모바일에서 더 높은 z-index
+                } else {
+                    // 데스크톱에서는 기존 로직
+                    const rightOffset = 8;
+                    const topOffset = 8;
+                    
+                    let left = buttonRect.right - 200;
+                    let top = buttonRect.bottom + topOffset;
+                    
+                    if (left < rightOffset) {
+                        left = rightOffset;
+                    }
+                    
+                    if (left + 200 > window.innerWidth - rightOffset) {
+                        left = window.innerWidth - 200 - rightOffset;
+                    }
+                    
+                    if (top + 300 > window.innerHeight - 20) {
+                        top = buttonRect.top - 300 - topOffset;
+                    }
+                    
+                    this.dropdownMenu.style.left = left + 'px';
+                    this.dropdownMenu.style.right = 'auto';
+                    this.dropdownMenu.style.top = top + 'px';
+                    this.dropdownMenu.style.zIndex = '999999';
                 }
                 
-                // 화면 오른쪽 경계 확인
-                if (left + 200 > window.innerWidth - rightOffset) {
-                    left = window.innerWidth - 200 - rightOffset;
-                }
-                
-                // 화면 아래쪽 경계 확인 (드롭다운 높이를 대략 300px로 가정)
-                if (top + 300 > window.innerHeight - 20) {
-                    top = buttonRect.top - 300 - topOffset; // 버튼 위쪽에 표시
-                }
-                
-                // 위치 먼저 설정 (애니메이션 없이)
-                this.dropdownMenu.style.left = left + 'px';
-                this.dropdownMenu.style.top = top + 'px';
                 this.dropdownMenu.style.visibility = 'visible';
                 
-                // 토스트 위치 조정 - 여기에 추가
+                // 토스트 위치 조정
                 this.toastContainer.classList.add('dropdown-open');
                 
                 // 브라우저가 위치를 적용한 후 애니메이션 시작
@@ -3619,7 +3715,9 @@
                 });
 
                 // 새로운 UI 이벤트들
+                // 사이드바 토글 이벤트 (이미 있는 코드 확인)
                 this.sidebarToggle.addEventListener('click', () => {
+                    console.log('햄버거 버튼 클릭됨'); // 디버깅용
                     this.toggleIconPanel();
                 });
                 this.thumbnailsBtn.addEventListener('click', () => {
