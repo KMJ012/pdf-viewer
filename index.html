@@ -498,12 +498,6 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             z-index: 999999; /* 라이트 테마에서도 동일한 높은 z-index */
         }
-        body.light-theme .dropdown-menu {
-            background: white;
-            border: 1px solid #dadce0;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            z-index: 999999; /* 라이트 테마에서도 동일한 높은 z-index */
-        }
 
         body.light-theme .dropdown-item {
             color: #202124;
@@ -2308,6 +2302,13 @@
             visibility: hidden;
         }
 
+        /* 드롭다운 메뉴 완전 격리 */
+        .dropdown-menu {
+            position: fixed !important;
+            z-index: 2147483647 !important; /* 32비트 정수 최대값 */
+            isolation: isolate !important; /* 새로운 stacking context 생성 */
+        }
+
         /* PDF 관련 모든 요소들 z-index 최하위로 */
         .pdf-viewer {
             z-index: -1 !important;
@@ -2352,10 +2353,12 @@
             z-index: -5 !important;
         }
 
-        /* 모바일에서 드롭다운 더 강화 */
+        /* 모바일에서 추가 보장 */
         body.mobile-device .dropdown-menu {
-            z-index: 9999999999 !important;
             position: fixed !important;
+            z-index: 2147483647 !important;
+            isolation: isolate !important;
+            transform: none !important; /* transform으로 인한 stacking context 방지 */
         }
 
         /* 라이트 테마 드롭다운 */
@@ -3048,6 +3051,12 @@
                 // 버튼의 위치를 계산해서 드롭다운 위치 설정
                 const buttonRect = this.propertiesBtn.getBoundingClientRect();
                 
+                // 드롭다운을 body에 직접 추가 (기존 위치에서 제거)
+                if (this.dropdownMenu.parentNode !== document.body) {
+                    this.dropdownMenu.remove();
+                    document.body.appendChild(this.dropdownMenu);
+                }
+                
                 // 모바일에서는 특별한 위치 조정
                 if (this.isMobile) {
                     // 모바일에서는 화면 우측 상단에 고정 위치
@@ -3057,6 +3066,8 @@
                     this.dropdownMenu.style.left = 'auto';
                     this.dropdownMenu.style.right = rightOffset + 'px';
                     this.dropdownMenu.style.top = topOffset + 'px';
+                    this.dropdownMenu.style.position = 'fixed';
+                    this.dropdownMenu.style.zIndex = '999999999'; // 최고 우선순위
                 } else {
                     // 데스크톱에서는 기존 로직
                     const rightOffset = 8;
@@ -3080,7 +3091,8 @@
                     this.dropdownMenu.style.left = left + 'px';
                     this.dropdownMenu.style.right = 'auto';
                     this.dropdownMenu.style.top = top + 'px';
-                    this.dropdownMenu.style.zIndex = '999999';
+                    this.dropdownMenu.style.position = 'fixed';
+                    this.dropdownMenu.style.zIndex = '999999999';
                 }
                 
                 this.dropdownMenu.style.visibility = 'visible';
@@ -3218,7 +3230,7 @@
                     usageGuide.innerHTML = `
                         <div style="text-align: left; padding-left: 20px;">
                             <div style="margin-bottom: 8px; line-height: 1.5;">
-                                <strong style="color: #4285f4;">• ${this.isMobile ? '모바일2' : '데스크톱1'}:</strong> <strong>${this.isMobile ? '파일' : '폴더'} 선택 버튼</strong>으로 ${this.isMobile ? '개별 PDF 파일을' : 'PDF 파일들이 있는 폴더를'} 선택하세요
+                                <strong style="color: #4285f4;">• ${this.isMobile ? '모바일3' : '데스크톱3'}:</strong> <strong>${this.isMobile ? '파일' : '폴더'} 선택 버튼</strong>으로 ${this.isMobile ? '개별 PDF 파일을' : 'PDF 파일들이 있는 폴더를'} 선택하세요
                             </div>
                             <div style="margin-bottom: 8px; line-height: 1.5;">
                                 <strong style="color: #4285f4;">• 드래그 앤 드롭:</strong> PDF 파일들을 직접 끌어다 놓으세요
