@@ -3057,7 +3057,6 @@
                     this.dropdownMenu.style.left = 'auto';
                     this.dropdownMenu.style.right = rightOffset + 'px';
                     this.dropdownMenu.style.top = topOffset + 'px';
-                    this.dropdownMenu.style.zIndex = '9999999'; // 모바일에서 더 높은 z-index
                 } else {
                     // 데스크톱에서는 기존 로직
                     const rightOffset = 8;
@@ -3219,7 +3218,7 @@
                     usageGuide.innerHTML = `
                         <div style="text-align: left; padding-left: 20px;">
                             <div style="margin-bottom: 8px; line-height: 1.5;">
-                                <strong style="color: #4285f4;">• ${this.isMobile ? '모바일1' : '데스크톱1'}:</strong> <strong>${this.isMobile ? '파일' : '폴더'} 선택 버튼</strong>으로 ${this.isMobile ? '개별 PDF 파일을' : 'PDF 파일들이 있는 폴더를'} 선택하세요
+                                <strong style="color: #4285f4;">• ${this.isMobile ? '모바일2' : '데스크톱1'}:</strong> <strong>${this.isMobile ? '파일' : '폴더'} 선택 버튼</strong>으로 ${this.isMobile ? '개별 PDF 파일을' : 'PDF 파일들이 있는 폴더를'} 선택하세요
                             </div>
                             <div style="margin-bottom: 8px; line-height: 1.5;">
                                 <strong style="color: #4285f4;">• 드래그 앤 드롭:</strong> PDF 파일들을 직접 끌어다 놓으세요
