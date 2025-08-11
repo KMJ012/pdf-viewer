@@ -525,10 +525,43 @@
             height: 63px;
             box-sizing: border-box;
             z-index: 10000 !important; /* 강력한 우선순위 */
-            position: relative !important;
+            position: absolute !important;
+            top: 0;
+            left: 0;
+            width: calc(100% - var(--sidebar-width, 0px)); /* 동적 너비 계산 */
             min-width: 600px;
             overflow-x: auto;
             overflow-y: hidden;
+            transition: left 0.3s ease, width 0.3s ease; /* 부드러운 전환 */
+        }
+
+        /* 사이드바 상태에 따른 툴바 위치 조정 */
+        body.sidebar-icon-open .toolbar {
+            left: 48px;
+            width: calc(100% - 48px);
+        }
+
+        body.sidebar-expanded .toolbar {
+            left: 318px;
+            width: calc(100% - 318px);
+        }
+
+        /* 사이드바 상태에 따른 폴더 선택 메시지 위치 조정 */
+        body.sidebar-icon-open .folder-selected-message {
+            margin-left: 68px; /* 48px (사이드바) + 20px (기본 여백) */
+        }
+
+        body.sidebar-expanded .folder-selected-message {
+            margin-left: 338px; /* 318px (사이드바) + 20px (기본 여백) */
+        }
+
+        /* 사이드바 상태에 따른 업로드 영역 위치 조정 */
+        body.sidebar-icon-open .upload-area {
+            margin-left: 68px; /* 48px (사이드바) + 20px (기본 여백) */
+        }
+
+        body.sidebar-expanded .upload-area {
+            margin-left: 338px; /* 318px (사이드바) + 20px (기본 여백) */
         }
 
         .toolbar-section {
@@ -623,7 +656,6 @@
         }
 
         /* ===== 실제 모바일 디바이스에서만 적용되는 스타일 ===== */
-        body.mobile-device #sidebarToggle,
         body.mobile-device .toolbar-btn {
             z-index: 99999 !important;
             position: relative !important;
@@ -914,17 +946,6 @@
             margin-bottom: 6px;
         }
 
-        body.mobile-device #sidebarToggle {
-            width: 32px !important;
-            height: 32px !important;
-            font-size: 16px !important;
-            z-index: 99999 !important;
-            position: relative !important;
-            display: flex !important;
-            opacity: 1 !important;
-            visibility: visible !important;
-            pointer-events: auto !important;
-        }
 
         /* 모바일에서 툴바 버튼들이 숨겨지지 않도록 */
         body.mobile-device .toolbar-btn {
@@ -983,7 +1004,7 @@
 
         /* 사이드바 */
         .sidebar {
-            width: 0; /* 기본적으로 숨김 */
+            width: 0; /* 초기에는 숨김, PDF 로드 시 표시 */
             background: rgb(50, 50, 50);
             border-right: 1px solid #333;
             transition: width 0.3s ease;
@@ -992,7 +1013,8 @@
             display: flex;
             flex-direction: row;
             position: relative;
-            z-index: 1500;
+            margin-top: 0px; /* 툴바와 같은 높이에서 시작 */
+            z-index: 10001; /* 툴바(10000)보다 위에 */
         }
         
         .sidebar.thumbnails-open {
@@ -1674,9 +1696,10 @@
             background: rgb(50, 50, 50);
             border: 2px dashed #555;
             margin: 20px;
+            margin-left: 20px; /* 기본값: 사이드바 숨김 상태 */
             border-radius: 8px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.3s ease, margin-left 0.3s ease; /* margin-left 전환 추가 */
             color: #ccc;
         }
 
@@ -1731,9 +1754,11 @@
             background: rgb(50, 50, 50);
             border: 2px solid #444;
             margin: 20px;
+            margin-left: 20px; /* 기본값: 사이드바 숨김 상태 */
             border-radius: 8px;
             padding: 40px;
             color: #ccc;
+            transition: margin-left 0.3s ease; /* 부드러운 전환 */
         }
 
         .folder-selected-icon {
@@ -1761,6 +1786,7 @@
             display: none;
             flex: 1;
             overflow: hidden;
+            padding-top: 63px; /* 툴바 높이만큼 상단 여백 추가 */
         }
 
         .pdf-container {
@@ -1812,6 +1838,7 @@
             max-width: none;
             max-height: none;
             position: relative;
+            z-index: 1; /* 낮은 z-index 유지 */
             transition: transform 0.2s ease;
             will-change: transform;
             image-rendering: -webkit-optimize-contrast;
@@ -2259,7 +2286,7 @@
 
         /* 드롭다운이 열려있을 때 토스트 위치 조정 */
         .toast-container.dropdown-open {
-            right: 220px; /* 드롭다운 너비만큼 왼쪽으로 이동 */
+            right: 250px; /* 토글 스위치 추가로 인한 드롭다운 너비 증가 고려 */
         }
 
         .toast {
@@ -2461,20 +2488,53 @@
         }
 
         .dropdown-item-toggle {
-            width: clamp(16px, 3vw, 20px);
-            height: clamp(16px, 3vw, 20px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: clamp(14px, 2.5vw, 16px);
-            color: #4285f4;
-            opacity: 0;
-            transition: opacity 0.2s ease;
+            width: 42px;
+            height: 22px;
+            position: relative;
+            background: #3c3c3c;
+            border-radius: 11px;
+            transition: all 0.3s ease;
             flex-shrink: 0;
+            cursor: pointer;
+            border: 1px solid #666;
+            margin-left: 12px;
+        }
+
+        .dropdown-item-toggle::before {
+            content: '';
+            position: absolute;
+            top: 1px;
+            left: 1px;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         .dropdown-item.active .dropdown-item-toggle {
-            opacity: 1;
+            background: #007AFF;
+            border-color: #007AFF;
+        }
+
+        .dropdown-item.active .dropdown-item-toggle::before {
+            transform: translateX(20px);
+        }
+
+        /* 라이트 테마 토글 스타일 */
+        body.light-theme .dropdown-item-toggle {
+            background: #E9E9EA;
+            border-color: #D1D1D6;
+        }
+
+        body.light-theme .dropdown-item-toggle::before {
+            background: white;
+        }
+
+        body.light-theme .dropdown-item.active .dropdown-item-toggle {
+            background: #34C759;
+            border-color: #34C759;
         }
 
         .dropdown-separator {
@@ -2710,7 +2770,6 @@
     <!-- 상단 툴바 -->
     <div class="toolbar" id="toolbar" style="display: none;">
         <div class="toolbar-section left">
-            <button class="toolbar-btn" id="sidebarToggle" title="사이드바 열기/닫기 (Ctrl+B)">☰</button>
             <span class="file-title" id="fileTitle">PDF 파일</span>
         </div>
 
@@ -2739,35 +2798,32 @@
                     <div class="dropdown-item disabled" id="dualPageItem">
                         <div class="dropdown-item-icon">📖</div>
                         <div class="dropdown-item-text">두 페이지씩 보기</div>
-                        <div class="dropdown-item-toggle">✓</div>
+                        <div class="dropdown-item-toggle"></div>
                     </div>
                     <div class="dropdown-item" id="autoTrackItem">
                         <div class="dropdown-item-icon">📋</div>
                         <div class="dropdown-item-text">자동 복사</div>
-                        <div class="dropdown-item-toggle">✓</div>
+                        <div class="dropdown-item-toggle"></div>
                     </div>
                     <div class="dropdown-item" id="toastToggleItem">
                         <div class="dropdown-item-icon">💬</div>
                         <div class="dropdown-item-text">토스트 메시지</div>
-                        <div class="dropdown-item-toggle">✓</div>
+                        <div class="dropdown-item-toggle"></div>
                     </div>
                     <div class="dropdown-separator"></div>
                     <div class="dropdown-item disabled" id="presentationItem">
                         <div class="dropdown-item-icon">🎞️</div>
                         <div class="dropdown-item-text">발표</div>
-                        <div class="dropdown-item-toggle"></div>
                     </div>
                     <div class="dropdown-separator"></div>
                     <!-- 여기에 사용 방법 항목 추가 -->
                     <div class="dropdown-item" id="helpItem">
                         <div class="dropdown-item-icon">❓</div>
                         <div class="dropdown-item-text">사용 방법</div>
-                        <div class="dropdown-item-toggle"></div>
                     </div>
                     <div class="dropdown-item" id="documentPropertiesItem">
                         <div class="dropdown-item-icon">ℹ️</div>
                         <div class="dropdown-item-text">문서 속성</div>
-                        <div class="dropdown-item-toggle"></div>
                     </div>
                 </div>
             </div>
@@ -3016,6 +3072,12 @@
                 this.activeToasts = new Map(); // 활성 토스트 관리용
 
                 this.isPageTransitioning = false; // 페이지 이동 중 플래그
+                
+                // 사이드바 전환 동기화를 위한 플래그들
+                this.isSidebarTransitioning = false; // 사이드바 전환 중 플래그
+                this.scrollPositionFrozen = false; // 스크롤 위치 고정 플래그
+                this.savedScrollPosition = { top: 0, left: 0 }; // 저장된 스크롤 위치
+                this._transitionCoordinator = null; // 전환 조정자
             }
 
             // 커스텀 알림 모달 표시 (확인 버튼만)
@@ -3207,8 +3269,6 @@
                 } else {
                     this.showToastMessage('🚫 자동 복사 비활성화: 자동 복사가 중지되었습니다'); // 수정
                 }
-                
-                this.hideDropdown();
             }
 
             // 토스트 메시지 토글
@@ -3222,8 +3282,6 @@
                     // 토스트가 비활성화되면 마지막 메시지만 강제로 표시
                     this.showToastMessage('🔇 토스트 메시지가 비활성화되었습니다', true);
                 }
-                
-                this.hideDropdown();
             }
 
             // 자동 추적 실행 (페이지 이동 시 호출)
@@ -3355,7 +3413,6 @@
                 this.fitToggleBtn = document.getElementById('fitToggleBtn');
                 this.copyBtn = document.getElementById('copyBtn');
                 this.captureBtn = document.getElementById('captureBtn');
-                this.sidebarToggle = document.getElementById('sidebarToggle');
                 this.fileTitle = document.getElementById('fileTitle');
                 this.toastContainer = document.getElementById('toastContainer');
                 this.loading = document.getElementById('loading');
@@ -3520,19 +3577,130 @@
                 });
             }
 
-            // 사이드바 토글 시 PDF 재조정
-            async handleSidebarToggle() {
-                // 페이지 이동 중이면 사이드바 조정 지연
+            // 스크롤 위치 고정/해제 메서드들
+            freezeScrollPosition() {
+                if (this.scrollPositionFrozen || !this.pdfContainer) return;
+                
+                this.savedScrollPosition = {
+                    top: this.pdfContainer.scrollTop,
+                    left: this.pdfContainer.scrollLeft
+                };
+                this.scrollPositionFrozen = true;
+                
+                // 스크롤 이벤트를 임시로 차단
+                this.pdfContainer.style.pointerEvents = 'none';
+                this.debugLog(`스크롤 위치 고정: top=${this.savedScrollPosition.top}, left=${this.savedScrollPosition.left}`);
+            }
+
+            unfreezeScrollPosition() {
+                if (!this.scrollPositionFrozen || !this.pdfContainer) return;
+                
+                // 저장된 위치로 복원
+                this.pdfContainer.scrollTop = this.savedScrollPosition.top;
+                this.pdfContainer.scrollLeft = this.savedScrollPosition.left;
+                
+                // 스크롤 이벤트 차단 해제
+                this.pdfContainer.style.pointerEvents = '';
+                this.scrollPositionFrozen = false;
+                
+                this.debugLog(`스크롤 위치 복원: top=${this.savedScrollPosition.top}, left=${this.savedScrollPosition.left}`);
+            }
+
+            // 사이드바 전환 조정자 - 모든 사이드바 변경을 동기화
+            async coordinatedSidebarTransition() {
+                // 이미 전환 중이면 대기 (최대 5초)
+                if (this.isSidebarTransitioning) {
+                    this.debugLog('사이드바 전환 중 - 대기');
+                    let waitCount = 0;
+                    while (this.isSidebarTransitioning && waitCount < 50) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        waitCount++;
+                    }
+                    if (this.isSidebarTransitioning) {
+                        this.debugLog('사이드바 전환 타임아웃 - 강제 해제');
+                        this.isSidebarTransitioning = false;
+                        this.unfreezeScrollPosition();
+                    }
+                }
+                
+                // 페이지 이동 중이면 지연
                 if (this.isPageTransitioning) {
-                    setTimeout(() => this.handleSidebarToggle(), 100);
+                    setTimeout(() => this.coordinatedSidebarTransition(), 100);
                     return;
                 }
 
                 if (!this.pdf || this.isMobile) return;
+
+                this.isSidebarTransitioning = true;
+                this.debugLog('=== 조정된 사이드바 전환 시작 ===');
                 
-                // 사이드바 열기/닫기에 따른 대기 시간
-                const waitTime = this.isIconPanelOpen ? 400 : 280;
-                await new Promise(resolve => setTimeout(resolve, waitTime));
+                try {
+                    // 1단계: 스크롤 위치 고정
+                    this.freezeScrollPosition();
+                    
+                    // 2단계: 툴바 위치 업데이트 (CSS 전환 시작)
+                    this.updateToolbarPositionSynchronized();
+                    
+                    // 3단계: CSS 전환 완료까지 대기 (정확히 300ms)
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    
+                    // 4단계: PDF 레이아웃 조정
+                    await this.adjustPDFForSidebarChange();
+                    
+                    // 5단계: 안정화 대기
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    
+                    // 6단계: 스크롤 위치 복원
+                    this.unfreezeScrollPosition();
+                    
+                } catch (error) {
+                    console.error('사이드바 전환 오류:', error);
+                    this.unfreezeScrollPosition(); // 오류 시에도 스크롤 해제
+                } finally {
+                    this.isSidebarTransitioning = false;
+                    this.debugLog('=== 조정된 사이드바 전환 완료 ===');
+                    
+                    // 비상 정리 메커니즘 - 5초 후 모든 플래그 강제 해제
+                    setTimeout(() => {
+                        if (this.scrollPositionFrozen) {
+                            this.debugLog('비상 스크롤 해제 실행');
+                            this.unfreezeScrollPosition();
+                        }
+                        if (this.isSidebarTransitioning) {
+                            this.debugLog('비상 전환 플래그 해제 실행');
+                            this.isSidebarTransitioning = false;
+                        }
+                    }, 5000);
+                }
+            }
+
+            // 동기화된 툴바 위치 업데이트 (CSS 전환과 정확히 매칭)
+            updateToolbarPositionSynchronized() {
+                this.debugLog('동기화된 툴바 위치 업데이트 시작');
+                
+                // body 클래스 모두 제거
+                document.body.classList.remove('sidebar-icon-open', 'sidebar-expanded');
+                
+                if (this.isIconPanelOpen) {
+                    if (this.isThumbnailsOpen || this.isFolderOpen) {
+                        // 사이드바가 확장된 상태 (318px)
+                        document.body.classList.add('sidebar-expanded');
+                        this.debugLog('사이드바 확장 상태 설정 (318px)');
+                    } else {
+                        // 아이콘 패널만 열린 상태 (48px)
+                        document.body.classList.add('sidebar-icon-open');
+                        this.debugLog('사이드바 아이콘만 열린 상태 설정 (48px)');
+                    }
+                } else {
+                    this.debugLog('사이드바 숨김 상태 설정 (0px)');
+                }
+            }
+
+            // 사이드바 변경에 맞춘 PDF 조정
+            async adjustPDFForSidebarChange() {
+                if (!this.pdf) return;
+                
+                this.debugLog('사이드바 변경에 따른 PDF 조정 시작');
                 
                 // 맞춤 모드에 따라 처리
                 if (this.fitMode === 'width' || this.fitMode === 'page') {
@@ -3552,19 +3720,25 @@
                     this.updateUI();
                     this.updateFitToggle();
                     
-                    // 스크롤 위치 리셋
-                    this.resetScrollPosition();
-                    
                     // 너비 맞춤 모드에서 추가 업데이트
                     if (this.fitMode === 'width') {
                         setTimeout(() => {
                             this.forceUpdateScrollAreaForWidthFit();
-                        }, 100);
+                        }, 50);
                     }
                 } else {
-                    // 기본 모드: 중앙 정렬만
-                    this.maintainPDFCenter();
+                    // 기본 모드: 스크롤 위치는 이미 고정되어 있으므로 레이아웃 조정만
+                    this.debugLog('기본 모드 - 레이아웃 미세 조정만 수행');
                 }
+                
+                this.debugLog('사이드바 변경에 따른 PDF 조정 완료');
+            }
+
+            // 사이드바 토글 시 PDF 재조정 (새로운 조정자 사용)
+            async handleSidebarToggle() {
+                this.debugLog('=== handleSidebarToggle 시작 (새로운 조정자 사용) ===');
+                await this.coordinatedSidebarTransition();
+                this.debugLog('=== handleSidebarToggle 완료 ===');
             }
 
             // 스크롤 위치를 적절히 리셋하는 함수
@@ -3575,17 +3749,7 @@
                 if (this.fitMode === 'width') {
                     // 가로 스크롤은 항상 0 (너비에 맞춰져 있으므로)
                     container.scrollLeft = 0;
-                    
-                    // 스크롤 영역 강제 업데이트
-                    this.forceUpdateScrollAreaForWidthFit();
-                    
-                    // 업데이트 후 세로 스크롤 범위 재확인
-                    setTimeout(() => {
-                        const maxScrollTop = container.scrollHeight - container.clientHeight;
-                        if (container.scrollTop > maxScrollTop && maxScrollTop >= 0) {
-                            container.scrollTop = maxScrollTop;
-                        }
-                    }, 50);
+                    // 다른 처리는 제거하여 PDF 위치 변경 방지
                     
                 } else if (this.fitMode === 'page') {
                     // 페이지 맞춤에서는 스크롤 없음
@@ -3858,11 +4022,6 @@
                 });
 
                 // 새로운 UI 이벤트들
-                // 사이드바 토글 이벤트 (이미 있는 코드 확인)
-                this.sidebarToggle.addEventListener('click', () => {
-                    console.log('햄버거 버튼 클릭됨'); // 디버깅용
-                    this.toggleIconPanel();
-                });
 
                 this.thumbnailsBtn.addEventListener('click', () => {
                     this.toggleThumbnails(); // 원래 기능으로 복원
@@ -3927,12 +4086,18 @@
                     this.showToastMessage('📖 두 페이지씩 보기는 현재 개발 중입니다');
                 });
                 
-                this.autoTrackItem.addEventListener('click', () => {
-                    this.toggleAutoTrack();
+                this.autoTrackItem.addEventListener('click', (e) => {
+                    // 토글 스위치 클릭이 아닌 경우에만 처리
+                    if (!e.target.closest('.dropdown-item-toggle')) {
+                        this.toggleAutoTrack();
+                    }
                 });
                 
-                this.toastToggleItem.addEventListener('click', () => {
-                    this.toggleToastMessages();
+                this.toastToggleItem.addEventListener('click', (e) => {
+                    // 토글 스위치 클릭이 아닌 경우에만 처리
+                    if (!e.target.closest('.dropdown-item-toggle')) {
+                        this.toggleToastMessages();
+                    }
                 });
                 
                 this.presentationItem.addEventListener('click', () => {
@@ -3969,6 +4134,24 @@
                     this.hideDropdown();
                     this.showHelpModal();
                 });
+
+                // 토글 스위치 직접 클릭 이벤트 (드롭다운을 닫지 않음)
+                const autoTrackToggle = this.autoTrackItem.querySelector('.dropdown-item-toggle');
+                const toastToggle = this.toastToggleItem.querySelector('.dropdown-item-toggle');
+                
+                if (autoTrackToggle) {
+                    autoTrackToggle.addEventListener('click', (e) => {
+                        e.stopPropagation(); // 이벤트 전파 방지
+                        this.toggleAutoTrack();
+                    });
+                }
+                
+                if (toastToggle) {
+                    toastToggle.addEventListener('click', (e) => {
+                        e.stopPropagation(); // 이벤트 전파 방지
+                        this.toggleToastMessages();
+                    });
+                }
 
                 this.helpCloseBtnFooter.addEventListener('click', () => {
                     this.hideHelpModal();
@@ -4964,6 +5147,11 @@
                     this.thumbnailsBtn.disabled = false;
                     this.toolbarThumbnailsBtn.disabled = false;
                     
+                    // PDF 로드 완료 시 사이드바 자동으로 열기
+                    this.sidebar.classList.add('icon-panel-open');
+                    this.isIconPanelOpen = true;
+                    this.updateToolbarPositionSynchronized(); // 툴바 위치 업데이트
+                    
                 } catch (error) {
                     await this.showAlertModal('PDF 로드 실패', 'PDF 파일을 로드하는데 실패했습니다.\n\n오류: ' + error.message);
                     console.error(error);
@@ -5031,11 +5219,93 @@
                     if (this.folderStructure) {
                         this.openFolder();
                     }
+                    
+                    // 툴바 위치 업데이트
+                    this.updateToolbarPositionSynchronized();
                 }
             }
 
             // 햄버거 버튼 - 아이콘 패널 토글
+            // 디버깅용 로그 함수
+            debugLog(message) {
+                const timestamp = new Date().toISOString();
+                const logEntry = `[${timestamp}] ${message}`;
+                console.log(logEntry);
+                
+                // 로컬 스토리지에도 저장 (txt 파일 다운로드용)
+                const existingLogs = localStorage.getItem('sidebarDebugLogs') || '';
+                localStorage.setItem('sidebarDebugLogs', existingLogs + logEntry + '\n');
+            }
+            
+            // 로그 다운로드 함수
+            downloadLogs() {
+                const logs = localStorage.getItem('sidebarDebugLogs') || 'No logs found';
+                const blob = new Blob([logs], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'sidebar-debug.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+            
+            // 로그 초기화 함수
+            clearLogs() {
+                localStorage.removeItem('sidebarDebugLogs');
+                console.log('Debug logs cleared');
+            }
+
+            // 툴바 위치 업데이트 함수
+            updateToolbarPosition() {
+                const beforeState = {
+                    isIconPanelOpen: this.isIconPanelOpen,
+                    isThumbnailsOpen: this.isThumbnailsOpen,
+                    isFolderOpen: this.isFolderOpen,
+                    bodyClasses: document.body.className
+                };
+                
+                this.debugLog(`updateToolbarPosition 시작 - 상태: ${JSON.stringify(beforeState)}`);
+                
+                // body 클래스 모두 제거
+                document.body.classList.remove('sidebar-icon-open', 'sidebar-expanded');
+                
+                if (this.isIconPanelOpen) {
+                    if (this.isThumbnailsOpen || this.isFolderOpen) {
+                        // 사이드바가 확장된 상태 (318px)
+                        document.body.classList.add('sidebar-expanded');
+                        this.debugLog('사이드바 확장 상태로 설정 (318px)');
+                    } else {
+                        // 아이콘 패널만 열린 상태 (48px)
+                        document.body.classList.add('sidebar-icon-open');
+                        this.debugLog('사이드바 아이콘만 열림 상태로 설정 (48px)');
+                    }
+                } else {
+                    this.debugLog('사이드바 숨김 상태로 설정 (0px)');
+                }
+                
+                // CSS 전환이 완료될 때까지 기다린 후 상태 확인 (0.3s + 약간의 여유)
+                setTimeout(() => {
+                    const afterState = {
+                        bodyClasses: document.body.className,
+                        toolbarRect: this.toolbar.getBoundingClientRect(),
+                        pdfContainerScroll: {
+                            scrollTop: this.pdfContainer.scrollTop,
+                            scrollLeft: this.pdfContainer.scrollLeft,
+                            scrollHeight: this.pdfContainer.scrollHeight,
+                            clientHeight: this.pdfContainer.clientHeight
+                        }
+                    };
+                    
+                    this.debugLog(`updateToolbarPosition 완료 (CSS 전환 완료 후) - 결과: ${JSON.stringify(afterState)}`);
+                }, 320); // 0.3s 전환 + 20ms 여유
+            }
+
             toggleIconPanel() {
+                this.debugLog('=== toggleIconPanel 시작 ===');
+                this.debugLog(`현재 상태 - isIconPanelOpen: ${this.isIconPanelOpen}, isThumbnailsOpen: ${this.isThumbnailsOpen}, isFolderOpen: ${this.isFolderOpen}`);
+                
                 // 캡쳐 모드가 활성화되어 있으면 종료
                 if (this.isCaptureMode) {
                     this.exitCaptureMode();
@@ -5101,7 +5371,7 @@
                         
                         // 메시지 중복 방지를 위해 여기서 함수 종료
                         if (this.pdf) {
-                            this.handleSidebarToggle();
+                            this.coordinatedSidebarTransition();
                         }
                         return;
                     } else {
@@ -5118,11 +5388,16 @@
                         }
                     }
                     
-                    // 데스크톱에서 사이드바 변화 시 PDF 재조정
+                    // 데스크톱에서 사이드바 변화 시 조정된 전환 사용
                     if (this.pdf) {
-                        this.handleSidebarToggle();
+                        this.coordinatedSidebarTransition();
+                    } else {
+                        // PDF가 없으면 툴바만 업데이트
+                        this.updateToolbarPositionSynchronized();
                     }
                 }
+                
+                this.debugLog(`=== toggleIconPanel 완료 - 최종 상태: isIconPanelOpen: ${this.isIconPanelOpen}, isThumbnailsOpen: ${this.isThumbnailsOpen}, isFolderOpen: ${this.isFolderOpen} ===`);
             }
 
             // 썸네일 토글 - 개선된 버전
@@ -5152,11 +5427,9 @@
                 this.openThumbnails();
                 this.showToastMessage('🖼️ 축소판이 열렸습니다');
                 
-                // 사이드바 변화 시 항상 재계산 (중앙 정렬 유지)
-                if (!this.isMobile) {
-                    setTimeout(() => {
-                        this.adjustScaleForSidebarChange();
-                    }, 100);
+                // 사이드바 변화 시 조정된 전환 사용
+                if (!this.isMobile && this.pdf) {
+                    this.coordinatedSidebarTransition();
                 }
                 
                 // 썸네일을 열 때 현재 페이지 선택 상태 업데이트
@@ -5184,10 +5457,10 @@
                     this.showToastMessage('📁 폴더 탐색기가 열렸습니다');
                 }
                 
-                // 사이드바 변화 처리
-                setTimeout(() => {
-                    this.adjustScaleForSidebarChange();
-                }, 100);
+                // 사이드바 변화 시 조정된 전환 사용
+                if (this.pdf) {
+                    this.coordinatedSidebarTransition();
+                }
             }
 
             // 폴더 탐색기 열기
@@ -5197,6 +5470,7 @@
                 this.sidebar.classList.add('folder-open');
                 this.folderBtn.classList.add('active');
                 this.lastOpenedSidebarType = 'folder'; // 마지막 열린 탭 업데이트
+                this.updateToolbarPositionSynchronized(); // 툴바 위치 업데이트
             }
 
             // 폴더 탐색기 닫기
@@ -5204,6 +5478,7 @@
                 this.isFolderOpen = false;
                 this.sidebar.classList.remove('folder-open');
                 this.folderBtn.classList.remove('active');
+                this.updateToolbarPositionSynchronized(); // 툴바 위치 업데이트
             }
 
             // 폴더 선택 처리 (데스크톱만)
@@ -5567,6 +5842,7 @@
                 // 아이콘 변경 (사이드바 모드)
                 this.thumbnailsBtn.textContent = '🖼️';
                 this.thumbnailsBtn.title = '축소판 창 열기';
+                this.updateToolbarPositionSynchronized(); // 툴바 위치 업데이트
             }
 
             // 썸네일 닫기
@@ -5579,6 +5855,7 @@
                 // 아이콘 복원
                 this.thumbnailsBtn.textContent = '🖼️';
                 this.thumbnailsBtn.title = '페이지 썸네일';
+                this.updateToolbarPositionSynchronized(); // 툴바 위치 업데이트
             }
 
             // 사이드바 변화에 따른 배율 재조정 (데스크톱만)
@@ -5645,9 +5922,11 @@
                     this.scheduleTextLayerRender(page, displayViewport);
                 }
 
-                // 렌더링 후 중앙 정렬 확인
+                // 렌더링 후 중앙 정렬 확인 (맞춤 모드가 아닐 때만)
                 setTimeout(() => {
-                    this.maintainPDFCenter();
+                    if (this.fitMode !== 'width' && this.fitMode !== 'page') {
+                        this.maintainPDFCenter();
+                    }
                 }, 50);
 
                 // 스크롤 영역 강제 업데이트
@@ -8653,6 +8932,15 @@
             
             // PDF 뷰어 초기화하고 전역 참조 저장
             window.pdfViewerInstance = new PDFClipboard();
+            
+            // 디버깅용 전역 함수들
+            window.downloadSidebarLogs = () => window.pdfViewerInstance.downloadLogs();
+            window.clearSidebarLogs = () => window.pdfViewerInstance.clearLogs();
+            
+            console.log('=== 사이드바 디버깅 활성화 ===');
+            console.log('로그 다운로드: downloadSidebarLogs()');
+            console.log('로그 초기화: clearSidebarLogs()');
+            console.log('========================');
         });
 
         // 초기 시스템 테마 적용 (페이지 로드 시)
