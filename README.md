@@ -1,183 +1,219 @@
 # 📄 PDF Viewer
 
-> A modern, high-performance web-based PDF viewer with advanced folder management and intelligent text/image handling.
+> 고성능 웹 기반 PDF 뷰어로, 폴더 관리와 스마트 텍스트/이미지 처리가 가능한 현대적인 도구입니다.
 
-[![Live Demo](https://img.shields.io/badge/🚀-Live%20Demo-blue?style=for-the-badge)](https://yourusername.github.io/pdf-viewer)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![PDF.js](https://img.shields.io/badge/PDF.js-v3.11.174-red?style=for-the-badge)](https://mozilla.github.io/pdf.js/)
 
-## ✨ Features
+## ✨ 주요 기능
 
-### Core Functionality
-- **📁 Folder-based PDF Management** - Select entire folders containing PDF files for streamlined workflow
-- **🖼️ Dynamic Thumbnail Navigation** - Auto-generated page thumbnails with real-time navigation
-- **⚡ High-Performance Rendering** - 3x quality rendering with optimized viewport management
-- **📱 Responsive Design** - Seamless experience across desktop, tablet, and mobile devices
+### 핵심 기능
+- **📁 폴더 기반 PDF 관리** - PDF 파일들이 포함된 전체 폴더를 선택하여 효율적인 워크플로우 제공
+- **🖼️ 동적 썸네일 네비게이션** - 실시간 페이지 썸네일과 자동 생성 시스템
+- **⚡ 고성능 렌더링** - 3배 고품질 렌더링과 최적화된 뷰포트 관리
+- **📱 반응형 디자인** - 데스크톱, 태블릿, 모바일에서 원활한 경험
+- **🌙 다크/라이트 테마** - 시스템 설정에 따른 자동 테마 전환
 
-### Advanced Capabilities
-- **✂️ Precision Area Capture** - Select and copy any region to clipboard with pixel-perfect accuracy
-- **🧠 Smart Copy System** - Intelligent text/image detection with automatic clipboard optimization
-- **⌨️ Comprehensive Keyboard Support** - Full keyboard navigation and shortcuts for power users
-- **🔍 Adaptive Zoom Controls** - Mouse-centered zooming with fit-to-width/page modes
-- **📄 Seamless Text Selection** - Native PDF text selection with proper Unicode handling
+### 고급 기능
+- **✂️ 정밀 영역 캡쳐** - 픽셀 단위 정확도로 영역을 선택하여 클립보드에 복사
+- **🧠 스마트 복사 시스템** - 텍스트/이미지 자동 감지 및 클립보드 최적화
+- **⌨️ 포괄적인 키보드 지원** - 파워 유저를 위한 완전한 키보드 네비게이션
+- **🔍 적응형 줌 컨트롤** - 마우스 중심 줌과 너비/페이지 맞춤 모드
+- **📄 원활한 텍스트 선택** - 유니코드 처리가 가능한 네이티브 PDF 텍스트 선택
+- **🪟 썸네일 창** - 전체 화면 썸네일 보기 및 다중 선택 기능
 
-## 🚀 Quick Start
+## 🚀 빠른 시작
 
-### Option 1: GitHub Pages (Recommended)
-1. Visit the [live demo](https://yourusername.github.io/pdf-viewer)
-2. Select your PDF folder or drag files directly
-
-### Option 2: Local Development
+### 옵션 1: 로컬 실행 (권장)
 ```bash
-git clone https://github.com/yourusername/pdf-viewer.git
-cd pdf-viewer
-# Serve with any static server (e.g., Python, Node.js, or VS Code Live Server)
+# 파일을 다운로드하고 웹 서버로 실행
+# Python을 사용한 예시
 python -m http.server 8000
-# Open http://localhost:8000
+# http://localhost:8000 접속
 ```
 
-## 🎮 Keyboard Shortcuts
+### 옵션 2: 직접 파일 열기
+- `index.html` 파일을 웹 브라우저에서 직접 열기
+- 일부 기능(클립보드 API 등)은 HTTPS 환경에서만 작동
 
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl + B` | Toggle sidebar |
-| `Ctrl + Shift + X` | Area capture mode |
-| `Ctrl + C` | Smart copy (text/image) |
-| `Ctrl + A` | Select all text |
-| `Ctrl + Wheel` | Mouse-centered zoom |
-| `Ctrl + +/-` | Zoom in/out |
-| `Arrow Keys` | Navigate pages |
-| `ESC` | Exit capture mode / Close sidebar |
+## 🎮 키보드 단축키
 
-## 🛠️ Technical Stack
+| 단축키 | 기능 |
+|--------|------|
+| `Ctrl + B` | 사이드바 토글 |
+| `Ctrl + Q` | 썸네일 창 열기/닫기 |
+| `Ctrl + Shift + X` | 영역 캡쳐 모드 |
+| `Ctrl + C` | 스마트 복사 (텍스트/이미지) |
+| `Ctrl + A` | 전체 텍스트 선택 |
+| `Ctrl + 휠` | 마우스 중심 줌 |
+| `Ctrl + +/-` | 확대/축소 |
+| `←/→` | 이전/다음 페이지 |
+| `↑/↓` | 스크롤 끝에서 페이지 이동 |
+| `ESC` | 캡쳐 모드 종료 / 사이드바 닫기 |
 
-- **Frontend**: Vanilla JavaScript (ES6+), HTML5, CSS3
-- **PDF Engine**: [PDF.js v3.11.174](https://mozilla.github.io/pdf.js/) by Mozilla
-- **Rendering**: HTML5 Canvas with high-DPI optimization
-- **Architecture**: Modular class-based design with event-driven state management
+## 🛠️ 기술 스택
 
-## 📐 Architecture Overview
+- **프론트엔드**: Vanilla JavaScript (ES6+), HTML5, CSS3
+- **PDF 엔진**: [PDF.js v3.11.174](https://mozilla.github.io/pdf.js/) (Mozilla)
+- **렌더링**: 고DPI 최적화된 HTML5 Canvas
+- **아키텍처**: 이벤트 기반 상태 관리의 모듈형 클래스 설계
+
+## 📐 아키텍처 개요
 
 ```
-PDFClipboard Class
-├── Rendering Engine
-│   ├── High-quality canvas rendering (3x scale)
-│   ├── Viewport optimization
-│   └── Text layer overlay
-├── UI Management
-│   ├── Responsive sidebar system
-│   ├── Dynamic thumbnail generation
-│   └── Adaptive toolbar controls
-├── Input Handling
-│   ├── File/folder selection
-│   ├── Drag & drop support
-│   └── Keyboard shortcuts
-└── Clipboard Integration
-    ├── Area capture system
-    ├── Smart text/image detection
-    └── High-quality image export
+PDFClipboard 클래스
+├── 렌더링 엔진
+│   ├── 고품질 캔버스 렌더링 (3배 스케일)
+│   ├── 뷰포트 최적화
+│   └── 텍스트 레이어 오버레이
+├── UI 관리
+│   ├── 반응형 사이드바 시스템
+│   ├── 동적 썸네일 생성
+│   └── 적응형 툴바 컨트롤
+├── 입력 처리
+│   ├── 파일/폴더 선택
+│   ├── 드래그 앤 드롭 지원
+│   └── 키보드 단축키
+└── 클립보드 통합
+    ├── 영역 캡쳐 시스템
+    ├── 스마트 텍스트/이미지 감지
+    └── 고품질 이미지 내보내기
 ```
 
-## 🔧 Browser Compatibility
+## 🔧 브라우저 호환성
 
-| Browser | Version | Status |
-|---------|---------|--------|
-| Chrome | 90+ | ✅ Fully Supported |
-| Firefox | 88+ | ✅ Fully Supported |
-| Safari | 14+ | ✅ Fully Supported |
-| Edge | 90+ | ✅ Fully Supported |
+| 브라우저 | 버전 | 상태 |
+|---------|------|------|
+| Chrome | 90+ | ✅ 완전 지원 |
+| Firefox | 88+ | ✅ 완전 지원 |
+| Safari | 14+ | ✅ 완전 지원 |
+| Edge | 90+ | ✅ 완전 지원 |
 
-**Requirements:**
-- Modern browser with ES6+ support
-- File API and Clipboard API support
-- HTML5 Canvas support
+**요구사항:**
+- ES6+ 지원하는 최신 브라우저
+- File API 및 Clipboard API 지원
+- HTML5 Canvas 지원
 
-## 🎯 Performance Optimizations
+## 🎯 성능 최적화
 
-- **Lazy Loading**: Thumbnails generated on-demand
-- **Memory Management**: Efficient canvas recycling and cleanup
-- **Render Optimization**: Debounced text layer updates during zoom operations
-- **File Handling**: Streaming-based PDF parsing for large files
-- **UI Responsiveness**: Hardware-accelerated CSS transitions
+- **지연 로딩**: 썸네일을 필요에 따라 생성
+- **메모리 관리**: 효율적인 캔버스 재활용 및 정리
+- **렌더링 최적화**: 줌 작업 중 텍스트 레이어 업데이트 디바운싱
+- **파일 처리**: 대용량 파일을 위한 스트리밍 기반 PDF 파싱
+- **UI 반응성**: 하드웨어 가속 CSS 전환
 
-## 🔒 Security & Privacy
+## 🔒 보안 및 개인정보
 
-- **Client-Side Only**: All PDF processing happens in your browser
-- **No Data Upload**: Files never leave your device
-- **No Tracking**: Zero analytics or external service calls
-- **Secure Origins**: HTTPS deployment for Clipboard API access
+- **클라이언트 사이드 전용**: 모든 PDF 처리가 브라우저에서 수행
+- **데이터 업로드 없음**: 파일이 사용자 기기를 떠나지 않음
+- **추적 없음**: 분석이나 외부 서비스 호출 없음
+- **보안 원본**: Clipboard API 접근을 위한 HTTPS 배포
 
-## 📱 Usage Examples
+## 📱 사용 예시
 
-### Basic PDF Viewing
-1. Click "폴더 선택" to select a folder containing PDFs
-2. Use the folder explorer (📁) to navigate between files
-3. View page thumbnails (🖼️) for quick navigation
+### 기본 PDF 보기
+1. "폴더 선택" 버튼을 클릭하여 PDF가 포함된 폴더 선택
+2. 폴더 탐색기 (📁)를 사용하여 파일 간 이동
+3. 페이지 썸네일 (🖼️)을 사용하여 빠른 네비게이션
 
-### Advanced Features
-- **Area Capture**: `Ctrl+Shift+X` → Drag to select → Auto-copy to clipboard
-- **Smart Copy**: Select text then `Ctrl+C` for text, or `Ctrl+C` without selection for full page image
-- **Power Navigation**: Use arrow keys for page navigation, `Ctrl+B` for sidebar toggle
+### 고급 기능
+- **영역 캡쳐**: `Ctrl+Shift+X` → 드래그하여 선택 → 자동 클립보드 복사
+- **스마트 복사**: 텍스트 선택 후 `Ctrl+C`로 텍스트, 선택 없이 `Ctrl+C`로 전체 페이지 이미지
+- **파워 네비게이션**: 화살표 키로 페이지 이동, `Ctrl+B`로 사이드바 토글
 
-## 🤝 Contributing
+### 썸네일 창 기능
+- **다중 선택**: 썸네일 창에서 여러 페이지를 선택하여 일괄 복사
+- **범위 선택**: `Shift + 클릭`으로 범위 선택 가능
+- **선택 모드**: ☑️ 버튼으로 선택 모드 활성화
 
-Contributions are welcome! Here's how you can help:
+## 🎨 테마 시스템
 
-1. **Bug Reports**: Use GitHub Issues with detailed reproduction steps
-2. **Feature Requests**: Describe use cases and expected behavior
-3. **Code Contributions**: Fork, create feature branch, submit PR
-4. **Documentation**: Improve README, add examples, or create tutorials
+- **다크 테마**: 기본 다크 모드
+- **라이트 테마**: 밝은 색상의 라이트 모드
+- **시스템 테마**: 운영체제 설정에 따른 자동 전환
+- **실시간 전환**: 테마 버튼으로 즉시 전환 가능
 
-### Development Setup
+## 📋 주요 기능 상세
+
+### 폴더 관리
+- **데스크톱**: 전체 폴더 선택으로 모든 PDF 파일 로드
+- **모바일**: 개별 파일 선택으로 최적화된 경험
+- **드래그 앤 드롭**: PDF 파일들을 직접 끌어다 놓기
+
+### 렌더링 시스템
+- **고품질 렌더링**: 3배 스케일로 고해상도 이미지 생성
+- **적응형 줌**: 마우스 중심 줌으로 자연스러운 확대/축소
+- **맞춤 모드**: 너비 맞춤, 페이지 맞춤 모드 지원
+
+### 복사 기능
+- **스마트 복사**: 텍스트 선택 시 텍스트, 미선택 시 이미지 자동 감지
+- **영역 캡쳐**: 드래그로 원하는 영역만 선택하여 복사
+- **다중 페이지 복사**: 여러 페이지를 개별 또는 합쳐서 복사
+- **자동 복사**: 페이지 이동 시 자동으로 클립보드 복사 (옵션)
+
+### UI/UX
+- **반응형 사이드바**: 화면 크기에 따라 자동 조정
+- **토스트 메시지**: 작업 상태를 실시간으로 알림
+- **키보드 단축키**: 마우스 없이도 모든 기능 사용 가능
+- **터치 지원**: 모바일에서 스와이프로 페이지 이동
+
+## 🤝 기여하기
+
+기여를 환영합니다! 다음과 같은 방법으로 도움을 주실 수 있습니다:
+
+1. **버그 리포트**: GitHub Issues에 상세한 재현 단계와 함께 제출
+2. **기능 요청**: 사용 사례와 예상 동작을 설명하여 제출
+3. **코드 기여**: Fork, 기능 브랜치 생성, PR 제출
+4. **문서화**: README 개선, 예시 추가, 튜토리얼 작성
+
+### 개발 설정
 ```bash
-# Clone and setup
+# 클론 및 설정
 git clone https://github.com/yourusername/pdf-viewer.git
 cd pdf-viewer
 
-# No build process required - pure vanilla JS
-# Just serve the files with any static server
+# 빌드 프로세스 불필요 - 순수 바닐라 JS
+# 정적 서버로 파일 제공만 하면 됨
 ```
 
-## 📊 Project Stats
+## 📊 프로젝트 통계
 
-- **Bundle Size**: 0 KB (no bundling required)
-- **Dependencies**: 1 (PDF.js CDN)
-- **Lines of Code**: ~2000 (well-documented)
-- **Load Time**: <2s on average connection
+- **번들 크기**: 0 KB (번들링 불필요)
+- **의존성**: 1개 (PDF.js CDN)
+- **코드 라인**: ~9000+ (잘 문서화됨)
+- **로드 시간**: 평균 연결에서 <2초
 
-## 🎨 Customization
+## 🎨 커스터마이징
 
-The viewer is designed for easy customization:
+뷰어는 쉬운 커스터마이징을 위해 설계되었습니다:
 
-- **Themes**: Modify CSS variables for color schemes
-- **Layout**: Responsive design adapts to container size
-- **Features**: Modular class structure for easy feature addition/removal
+- **테마**: 색상 체계를 위한 CSS 변수 수정
+- **레이아웃**: 컨테이너 크기에 적응하는 반응형 디자인
+- **기능**: 쉬운 기능 추가/제거를 위한 모듈형 클래스 구조
 
-## 📋 Roadmap
+## 📋 로드맵
 
-- [ ] **Multi-language Support** - i18n implementation
-- [ ] **Advanced Search** - Full-text PDF search
-- [ ] **Annotation Support** - Basic markup tools
-- [ ] **Bookmarks** - Save and restore reading positions
-- [ ] **Print Optimization** - Enhanced print layouts
-- [ ] **PWA Support** - Offline capability
+- [ ] **다국어 지원** - i18n 구현
+- [ ] **고급 검색** - 전체 텍스트 PDF 검색
+- [ ] **주석 지원** - 기본 마크업 도구
+- [ ] **북마크** - 읽기 위치 저장 및 복원
+- [ ] **인쇄 최적화** - 향상된 인쇄 레이아웃
+- [ ] **PWA 지원** - 오프라인 기능
 
-## 📄 License
+## 📄 라이선스
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+이 프로젝트는 MIT 라이선스 하에 배포됩니다 - 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
 
-## 🙏 Acknowledgments
+## 🙏 감사의 말
 
-- [Mozilla PDF.js](https://mozilla.github.io/pdf.js/) - Powerful PDF rendering engine
-- [MDN Web Docs](https://developer.mozilla.org/) - Comprehensive web API documentation
-- Open source community for inspiration and feedback
+- [Mozilla PDF.js](https://mozilla.github.io/pdf.js/) - 강력한 PDF 렌더링 엔진
+- [MDN Web Docs](https://developer.mozilla.org/) - 포괄적인 웹 API 문서
+- 더 나은 PDF 읽기 경험을 위한 오픈 소스 커뮤니티
 
 ---
 
 <div align="center">
 
-**[Live Demo](https://yourusername.github.io/pdf-viewer)** • **[Report Bug](https://github.com/yourusername/pdf-viewer/issues)** • **[Request Feature](https://github.com/yourusername/pdf-viewer/issues)**
-
-Made with ❤️ for better PDF reading experience
+**더 나은 PDF 읽기 경험을 위해 ❤️로 만들었습니다**
 
 </div>
