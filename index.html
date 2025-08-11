@@ -5589,7 +5589,7 @@
                 this.debugLog(`=== toggleIconPanel 완료 - 최종 상태: isIconPanelOpen: ${this.isIconPanelOpen}, isThumbnailsOpen: ${this.isThumbnailsOpen}, isFolderOpen: ${this.isFolderOpen} ===`);
             }
 
-            // 썸네일 토글 - 개선된 버전
+            // 썸네일 토글 - 개선된 버전 (축소판 창 열기 기능 제거)
             toggleThumbnails() {
                 // 썸네일 버튼이 비활성화되어 있으면 동작하지 않음
                 if (this.thumbnailsBtn.disabled) {
@@ -5601,9 +5601,10 @@
                     return;
                 }
                 
-                // 이미 썸네일이 열려있는 상태에서 다시 클릭하면 축소판 창 열기
+                // 이미 썸네일이 열려있는 상태에서 다시 클릭하면 썸네일 닫기
                 if (this.isThumbnailsOpen) {
-                    this.openThumbnailWindow();
+                    this.closeThumbnails();
+                    this.showToastMessage('🖼️ 축소판이 닫혔습니다');
                     return;
                 }
                 
