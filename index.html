@@ -1548,6 +1548,104 @@
             cursor: not-allowed;
         }
 
+        /* 테마 선택자 컨테이너 */
+        .theme-selector-container {
+            position: relative;
+            display: inline-block;
+            height: 40px; /* toolbar-btn과 동일한 높이 */
+            width: 40px;  /* toolbar-btn과 동일한 너비 */
+            margin-right: 8px; /* 삼중점과 간격 */
+        }
+
+        .theme-selector-background {
+            position: absolute;
+            top: 4px; /* 중앙 정렬을 위한 오프셋 */
+            right: 0px; /* 10px 더 오른쪽으로 이동 */
+            height: 32px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            width: 32px;
+            opacity: 0;
+            backdrop-filter: blur(4px);
+        }
+
+        .theme-selector-container.expanded {
+            width: 112px; /* 확장 시 전체 너비 (간격 늘림) */
+        }
+
+        .theme-selector-container.expanded .theme-selector-background {
+            width: 104px; /* 3개 버튼 너비 (간격 늘림) */
+            opacity: 1;
+        }
+
+        .theme-btn {
+            position: absolute;
+            top: 4px; /* toolbar-btn과 동일한 위치 맞춤 */
+            background: transparent;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 18px; /* toolbar-btn과 동일 */
+            width: 32px;
+            height: 32px;
+            border-radius: 50%; /* 원형으로 변경 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            z-index: 1;
+        }
+
+        .theme-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .theme-btn.current {
+            right: 0px; /* 10px 더 오른쪽으로 이동 */
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* 기본 상태에서 다른 테마 버튼들은 숨김 */
+        .theme-selector-container:not(.expanded) .theme-btn:not(.current) {
+            opacity: 0;
+            pointer-events: none;
+            right: 0px; /* 현재 버튼과 같은 위치에서 시작 */
+            transform: scale(0.8);
+        }
+
+        /* 확장된 상태에서의 위치 - 왼쪽으로 펼쳐짐 */
+        .theme-selector-container.expanded .theme-btn:nth-child(2) {
+            right: 68px; /* 가장 왼쪽 (10px 더 이동) */
+        }
+
+        .theme-selector-container.expanded .theme-btn:nth-child(3) {
+            right: 34px; /* 중간 (10px 더 이동) */
+        }
+
+        .theme-selector-container.expanded .theme-btn:nth-child(4) {
+            right: 0px; /* 현재 위치 맞춤 */
+        }
+
+        /* 라이트 테마 스타일 */
+        body.light-theme .theme-selector-background {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        body.light-theme .theme-btn {
+            color: #5f6368;
+        }
+
+        body.light-theme .theme-btn.current {
+            color: #202124;
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        body.light-theme .theme-btn:hover {
+            background: rgba(60, 64, 67, 0.08);
+        }
+
         .toolbar-input {
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 4px;
@@ -2791,7 +2889,12 @@
         </div>
 
         <div class="toolbar-section right">
-            <button class="toolbar-btn" id="themeToggleBtn" title="다크모드">🌙</button>
+            <div class="theme-selector-container" id="themeSelectorContainer">
+                <div class="theme-selector-background"></div>
+                <button class="theme-btn current" id="currentThemeBtn" data-theme="current"></button>
+                <button class="theme-btn" id="otherThemeBtn1" data-theme="other1"></button>
+                <button class="theme-btn" id="otherThemeBtn2" data-theme="other2"></button>
+            </div>
             <div class="dropdown-container">
                 <button class="toolbar-btn" id="propertiesBtn" title="더보기">⋮</button>
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -3450,9 +3553,13 @@
                 this.presentationItem = document.getElementById('presentationItem');
                 this.documentPropertiesItem = document.getElementById('documentPropertiesItem');
                 
-                // 테마 토글 관련 요소들
-                this.themeToggleBtn = document.getElementById('themeToggleBtn');
-                this.currentTheme = 'dark'; // 'dark', 'light', 'system'
+                // 테마 선택자 관련 요소들
+                this.themeSelectorContainer = document.getElementById('themeSelectorContainer');
+                this.currentThemeBtn = document.getElementById('currentThemeBtn');
+                this.otherThemeBtn1 = document.getElementById('otherThemeBtn1');
+                this.otherThemeBtn2 = document.getElementById('otherThemeBtn2');
+                this.currentTheme = 'system'; // 'dark', 'light', 'system'
+                this.themeOrder = ['dark', 'light', 'system']; // 테마 순서
                 
                 // 썸네일 창 관련 요소들
                 this.thumbnailWindowModal = document.getElementById('thumbnailWindowModal');
@@ -4059,10 +4166,8 @@
                     this.handleFolderSelect(e);
                 });
                 
-                // 테마 토글 이벤트
-                this.themeToggleBtn.addEventListener('click', () => {
-                    this.toggleTheme();
-                });
+                // 테마 선택자 이벤트들
+                this.setupThemeSelector();
                 
                 // 시스템 테마 변경 감지
                 if (window.matchMedia) {
@@ -4377,40 +4482,124 @@
                 }
             }
 
+            // 테마 선택자 설정
+            setupThemeSelector() {
+                // 초기 테마 버튼 설정
+                this.updateThemeButtons();
+                
+                // 마우스 오버/아웃 이벤트
+                this.themeSelectorContainer.addEventListener('mouseenter', () => {
+                    this.expandThemeSelector();
+                });
+                
+                this.themeSelectorContainer.addEventListener('mouseleave', () => {
+                    this.collapseThemeSelector();
+                });
+                
+                // 각 테마 버튼 클릭 이벤트
+                this.currentThemeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    // 현재 테마 버튼을 클릭하면 아무것도 하지 않음 (이미 선택된 상태)
+                });
+                
+                this.otherThemeBtn1.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const theme = this.otherThemeBtn1.dataset.theme;
+                    this.changeTheme(theme);
+                });
+                
+                this.otherThemeBtn2.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const theme = this.otherThemeBtn2.dataset.theme;
+                    this.changeTheme(theme);
+                });
+                
+                // 터치 디바이스 대응
+                if ('ontouchstart' in window) {
+                    let touchTimer;
+                    this.themeSelectorContainer.addEventListener('touchstart', () => {
+                        touchTimer = setTimeout(() => {
+                            this.expandThemeSelector();
+                        }, 200);
+                    });
+                    
+                    this.themeSelectorContainer.addEventListener('touchend', () => {
+                        clearTimeout(touchTimer);
+                    });
+                }
+            }
+
+            // 테마 버튼 업데이트
+            updateThemeButtons() {
+                const themeConfig = {
+                    'dark': { icon: '🌙', title: '다크모드' },
+                    'light': { icon: '☀️', title: '라이트모드' },
+                    'system': { icon: '⚙️', title: '시스템 설정' }
+                };
+                
+                // 현재 테마 버튼 설정
+                const current = themeConfig[this.currentTheme];
+                this.currentThemeBtn.textContent = current.icon;
+                this.currentThemeBtn.title = current.title;
+                this.currentThemeBtn.dataset.theme = this.currentTheme;
+                
+                // 다른 테마들 가져오기
+                const otherThemes = this.themeOrder.filter(theme => theme !== this.currentTheme);
+                
+                // 첫 번째 다른 테마 버튼
+                const other1 = themeConfig[otherThemes[0]];
+                this.otherThemeBtn1.textContent = other1.icon;
+                this.otherThemeBtn1.title = other1.title;
+                this.otherThemeBtn1.dataset.theme = otherThemes[0];
+                
+                // 두 번째 다른 테마 버튼  
+                const other2 = themeConfig[otherThemes[1]];
+                this.otherThemeBtn2.textContent = other2.icon;
+                this.otherThemeBtn2.title = other2.title;
+                this.otherThemeBtn2.dataset.theme = otherThemes[1];
+            }
+
+            // 테마 선택자 확장
+            expandThemeSelector() {
+                this.themeSelectorContainer.classList.add('expanded');
+            }
+
+            // 테마 선택자 축소
+            collapseThemeSelector() {
+                this.themeSelectorContainer.classList.remove('expanded');
+            }
+
+            // 테마 변경
+            changeTheme(theme) {
+                this.currentTheme = theme;
+                this.updateThemeButtons(); // 모든 버튼 업데이트
+                this.applyTheme();
+                this.collapseThemeSelector();
+                // 테마 변경 시 사용법 가이드 텍스트 색상 업데이트
+                this.setupMobileUI();
+            }
+
+            // 테마 적용
+            applyTheme() {
+                switch (this.currentTheme) {
+                    case 'dark':
+                        document.body.classList.remove('light-theme');
+                        break;
+                    case 'light':
+                        document.body.classList.add('light-theme');
+                        break;
+                    case 'system':
+                        this.applySystemTheme();
+                        break;
+                }
+            }
+
             // 초기 테마 설정
             initializeTheme() {
                 // 기본적으로 시스템 설정으로 시작
                 this.currentTheme = 'system';
-                this.themeToggleBtn.textContent = '⚙️';
-                this.themeToggleBtn.title = '시스템 설정';
+                this.updateThemeButtons();
                 this.applySystemTheme();
-            }
-
-            // 테마 토글 기능
-            toggleTheme() {
-                switch (this.currentTheme) {
-                    case 'dark':
-                        this.currentTheme = 'light';
-                        this.themeToggleBtn.textContent = '☀️';
-                        this.themeToggleBtn.title = '라이트모드';
-                        document.body.classList.add('light-theme');
-                        break;
-                    case 'light':
-                        this.currentTheme = 'system';
-                        this.themeToggleBtn.textContent = '⚙️';
-                        this.themeToggleBtn.title = '시스템 설정';
-                        this.applySystemTheme();
-                        break;
-                    case 'system':
-                        this.currentTheme = 'dark';
-                        this.themeToggleBtn.textContent = '🌙';
-                        this.themeToggleBtn.title = '다크모드';
-                        document.body.classList.remove('light-theme');
-                        break;
-                }
-                
-                // 테마 변경 시 사용법 가이드 텍스트 색상 업데이트
-                this.setupMobileUI();
             }
 
             // 시스템 테마 적용
